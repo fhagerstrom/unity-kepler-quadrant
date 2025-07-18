@@ -180,8 +180,8 @@ public class PlayerShipController : MonoBehaviour
     private void RotateShip()
     {
         // Base steering rotation (pitch, yaw, lean)
-        float pitch = -currentSteerInput.y * maxRollAngle * 0.5f;
-        float yaw = currentSteerInput.x * maxRollAngle * 0.5f;
+        float pitch = -currentSteerInput.y * maxPitchAngle * 0.5f;
+        float yaw = currentSteerInput.x * maxYawAngle * 0.5f;
         float lean = -currentSteerInput.x * maxRollAngle;
 
         // Combine rotation with current barrel roll angle
@@ -196,7 +196,6 @@ public class PlayerShipController : MonoBehaviour
 
     private void Shoot()
     {
-        // Your pool code here
         Debug.Log("Pew pew!");
     }
 
