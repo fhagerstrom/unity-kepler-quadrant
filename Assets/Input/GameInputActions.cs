@@ -155,6 +155,24 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""RollLeft"",
+                    ""type"": ""Button"",
+                    ""id"": ""03089d70-a037-401a-8d8e-26a3c6f921f1"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""RollRight"",
+                    ""type"": ""Button"",
+                    ""id"": ""8bb25771-63ac-41ac-a670-9a6b5c6c5b4a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""ToggleFlightMode"",
                     ""type"": ""Button"",
                     ""id"": ""6be71b2f-75aa-46c9-820e-a5008ae48d3c"",
@@ -461,6 +479,50 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""ToggleFlightMode"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7035ecaf-9800-453e-8ba2-0e94d205a0c2"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""RollLeft"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""47a29672-2df0-491c-895f-82ca1008c018"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""RollLeft"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""77ad4894-1dc4-465e-a14f-eec54dd8e916"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""RollRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""458536be-cead-49a1-bc22-2f63454601d2"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""RollRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -476,6 +538,8 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
         m_Flying_BarrelRollLeft = m_Flying.FindAction("BarrelRollLeft", throwIfNotFound: true);
         m_Flying_BarrelRollRight = m_Flying.FindAction("BarrelRollRight", throwIfNotFound: true);
         m_Flying_Somersault = m_Flying.FindAction("Somersault", throwIfNotFound: true);
+        m_Flying_RollLeft = m_Flying.FindAction("RollLeft", throwIfNotFound: true);
+        m_Flying_RollRight = m_Flying.FindAction("RollRight", throwIfNotFound: true);
         m_Flying_ToggleFlightMode = m_Flying.FindAction("ToggleFlightMode", throwIfNotFound: true);
     }
 
@@ -564,6 +628,8 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Flying_BarrelRollLeft;
     private readonly InputAction m_Flying_BarrelRollRight;
     private readonly InputAction m_Flying_Somersault;
+    private readonly InputAction m_Flying_RollLeft;
+    private readonly InputAction m_Flying_RollRight;
     private readonly InputAction m_Flying_ToggleFlightMode;
     /// <summary>
     /// Provides access to input actions defined in input action map "Flying".
@@ -604,6 +670,14 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Flying/Somersault".
         /// </summary>
         public InputAction @Somersault => m_Wrapper.m_Flying_Somersault;
+        /// <summary>
+        /// Provides access to the underlying input action "Flying/RollLeft".
+        /// </summary>
+        public InputAction @RollLeft => m_Wrapper.m_Flying_RollLeft;
+        /// <summary>
+        /// Provides access to the underlying input action "Flying/RollRight".
+        /// </summary>
+        public InputAction @RollRight => m_Wrapper.m_Flying_RollRight;
         /// <summary>
         /// Provides access to the underlying input action "Flying/ToggleFlightMode".
         /// </summary>
@@ -655,6 +729,12 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
             @Somersault.started += instance.OnSomersault;
             @Somersault.performed += instance.OnSomersault;
             @Somersault.canceled += instance.OnSomersault;
+            @RollLeft.started += instance.OnRollLeft;
+            @RollLeft.performed += instance.OnRollLeft;
+            @RollLeft.canceled += instance.OnRollLeft;
+            @RollRight.started += instance.OnRollRight;
+            @RollRight.performed += instance.OnRollRight;
+            @RollRight.canceled += instance.OnRollRight;
             @ToggleFlightMode.started += instance.OnToggleFlightMode;
             @ToggleFlightMode.performed += instance.OnToggleFlightMode;
             @ToggleFlightMode.canceled += instance.OnToggleFlightMode;
@@ -690,6 +770,12 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
             @Somersault.started -= instance.OnSomersault;
             @Somersault.performed -= instance.OnSomersault;
             @Somersault.canceled -= instance.OnSomersault;
+            @RollLeft.started -= instance.OnRollLeft;
+            @RollLeft.performed -= instance.OnRollLeft;
+            @RollLeft.canceled -= instance.OnRollLeft;
+            @RollRight.started -= instance.OnRollRight;
+            @RollRight.performed -= instance.OnRollRight;
+            @RollRight.canceled -= instance.OnRollRight;
             @ToggleFlightMode.started -= instance.OnToggleFlightMode;
             @ToggleFlightMode.performed -= instance.OnToggleFlightMode;
             @ToggleFlightMode.canceled -= instance.OnToggleFlightMode;
@@ -782,6 +868,20 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnSomersault(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "RollLeft" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRollLeft(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "RollRight" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRollRight(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "ToggleFlightMode" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>

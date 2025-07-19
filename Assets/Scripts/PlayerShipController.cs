@@ -30,14 +30,16 @@ public class PlayerShipController : MonoBehaviour
 
     [Header("Ship Tilt & Look")]
     [SerializeField] private float maxRollAngle = 60f;
-    [SerializeField] private float maxYawAngle = 30f;
-    [SerializeField] private float maxPitchAngle = 15f;
+    [SerializeField] private float maxYawAngle = 45f;
+    [SerializeField] private float maxPitchAngle = 45f;
     [SerializeField] private float rotationSpeed = 340f;
 
     [Header("Laser")]
-    [SerializeField] private ParticleSystem laserBeam;
-    [SerializeField] private Transform fireLeft;
-    [SerializeField] private Transform fireRight;
+    [SerializeField] private Transform firePointLeft;
+    [SerializeField] private Transform firePointRight;
+    [SerializeField] private float fireCooldown = 0.1f;
+
+    private float fireTimer;
 
     // ──────────────────────────────────────────────────────────────
     // Private vars
@@ -132,6 +134,9 @@ public class PlayerShipController : MonoBehaviour
         }
 
         UpdateBarrelRoll();
+
+        // Update laser timer
+        fireTimer += Time.deltaTime;
     }
 
     private void UpdateOnRails()
@@ -197,6 +202,22 @@ public class PlayerShipController : MonoBehaviour
     private void Shoot()
     {
         Debug.Log("Pew pew!");
+
+        if (fireTimer < fireCooldown)
+            return;
+
+        fireTimer = 0f;
+
+        // Left laser
+        var leftLaser = LaserPool.instance.GetLaser();
+        leftLaser.transform.position = firePointLeft.position;
+        leftLaser.transform.rotation = firePointLeft.rotation;
+
+        // Right Laser
+        var rightLaser = LaserPool.instance.GetLaser();
+        rightLaser.transform.position = firePointRight.position;
+        rightLaser.transform.rotation = firePointRight.rotation;
+
     }
 
     private void TriggerBarrelRoll(int direction)

@@ -69,6 +69,24 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "RollLeft",
+                    "type": "Button",
+                    "id": "03089d70-a037-401a-8d8e-26a3c6f921f1",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "RollRight",
+                    "type": "Button",
+                    "id": "8bb25771-63ac-41ac-a670-9a6b5c6c5b4a",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "ToggleFlightMode",
                     "type": "Button",
                     "id": "6be71b2f-75aa-46c9-820e-a5008ae48d3c",
@@ -373,6 +391,50 @@
                     "processors": "",
                     "groups": "",
                     "action": "ToggleFlightMode",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7035ecaf-9800-453e-8ba2-0e94d205a0c2",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RollLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "47a29672-2df0-491c-895f-82ca1008c018",
+                    "path": "<Gamepad>/leftShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RollLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "77ad4894-1dc4-465e-a14f-eec54dd8e916",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RollRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "458536be-cead-49a1-bc22-2f63454601d2",
+                    "path": "<Gamepad>/rightShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RollRight",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
