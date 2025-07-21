@@ -1,11 +1,7 @@
-﻿using System.Collections;
-using System.Runtime.CompilerServices;
-using Unity.Cinemachine;
-using Unity.Mathematics;
+﻿using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Splines;
-using UnityEngine.Windows;
 using static Unity.Cinemachine.SplineAutoDolly;
 
 [RequireComponent(typeof(PlayerInput))]
@@ -13,12 +9,12 @@ public class PlayerShipController : MonoBehaviour
 {
     // ──────────────────────────────────────────────────────────────
     // Inspector vars
-    [Header("Hierarchy")]
+    [Header("References")]
     [SerializeField] private CinemachineSplineCart cart;     // on PathFollower
     [SerializeField] private CinemachineCamera onRailsCam;
     [SerializeField] private CinemachineCamera freeFlightCam;
+    [SerializeField] private AimTargetController aimController;
     [SerializeField] private Transform pathFollower;
-    [SerializeField] private Transform aimTarget;
     [SerializeField] private Transform shipMesh;
 
     [Header("Movement")]
@@ -28,11 +24,10 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private float brakeDelta = 5f;
     [SerializeField] private float steeringSpeed = 15f;
 
-    [Header("Ship Tilt & Look")]
+    [Header("Ship Mesh Tilting")]
     [SerializeField] private float maxRollAngle = 60f;
     [SerializeField] private float maxYawAngle = 45f;
-    [SerializeField] private float maxPitchAngle = 45f;
-    [SerializeField] private float rotationSpeed = 340f;
+    [SerializeField] private float maxPitchAngle = 35f;
 
     [Header("Laser")]
     [SerializeField] private Transform firePointLeft;
@@ -114,37 +109,20 @@ public class PlayerShipController : MonoBehaviour
 
     private void Update()
     {
-        // Update input
-        targetInput = flying.Steer.ReadValue<Vector2>();
-        targetInput.y *= -1f; // Invert vertical movement
+        // Advance laser cooldown
+        fireTimer += Time.deltaTime;
 
-        if (Mathf.Abs(currentSteerInput.x) < 0.001) 
-            currentSteerInput.x = 0f;
-        if (Mathf.Abs(currentSteerInput.y) < 0.001) 
-            currentSteerInput.y = 0f;
-
-        switch (currentMode)
+        // Handle movement & tilt by mode
+        if (currentMode == FlightMode.OnRails)
         {
-            case FlightMode.OnRails:
-                UpdateOnRails();
-                break;
-            case FlightMode.FreeFlight:
-                HandleFreeFlight();
-                break;
+            HandleOnRails();
+        }
+        else
+        {
+            HandleFreeFlight();
         }
 
         UpdateBarrelRoll();
-
-        // Update laser timer
-        fireTimer += Time.deltaTime;
-    }
-
-    private void UpdateOnRails()
-    {
-        currentSteerInput = Vector2.Lerp(currentSteerInput, targetInput, steeringSpeed * Time.deltaTime);
-        MoveShip();
-        LookRotation();
-        RotateShip();
     }
 
     private void FixedUpdate()
@@ -157,13 +135,29 @@ public class PlayerShipController : MonoBehaviour
     // ──────────────────────────────────────────────────────────────
     // Core behaviour
     // ──────────────────────────────────────────────────────────────
-
-    private void MoveShip()
+    private void HandleOnRails()
     {
-        // Calculate movement change based on input in relation to cinemachine path
-        transform.localPosition += new Vector3(currentSteerInput.x, currentSteerInput.y, 0f) * steeringSpeed * Time.deltaTime;
+        //currentSteerInput = Vector2.Lerp(currentSteerInput, targetInput, steeringSpeed * Time.deltaTime);
+
+        //// Calculate movement change based on input in relation to cinemachine path
+        //transform.localPosition += new Vector3(currentSteerInput.x, currentSteerInput.y, 0f) * steeringSpeed * Time.deltaTime;
+
+        // Read the aimController offset for strafing the ship
+        Vector2 offset2D = aimController.CloseTargetOffset;
+
+        // Normalize to [-1, 1]
+        float normalizedX = offset2D.x / aimController.maxRadius;
+        float normalizedY = offset2D.y / aimController.maxRadius;
+
+        // Apply strafing movement inside the viewport
+        Vector3 strafe = new Vector3(normalizedX, normalizedY, 0f)
+                       * steeringSpeed
+                       * Time.deltaTime;
+
+        transform.localPosition += strafe;
 
         ClampShipPosition();
+        TiltShipMesh(new Vector2(normalizedX, normalizedY));
     }
 
     private void ClampShipPosition()
@@ -175,22 +169,15 @@ public class PlayerShipController : MonoBehaviour
         transform.position = Camera.main.ViewportToWorldPoint(position);
     }
 
-    private void LookRotation()
-    {
-        aimTarget.parent.position = Vector3.zero;
-        aimTarget.localPosition = new Vector3(currentSteerInput.x, currentSteerInput.y, 1f);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(aimTarget.position), Mathf.Deg2Rad * rotationSpeed * Time.deltaTime);
-    }
-
-    private void RotateShip()
+    private void TiltShipMesh(Vector2 steering)
     {
         // Base steering rotation (pitch, yaw, lean)
-        float pitch = -currentSteerInput.y * maxPitchAngle * 0.5f;
-        float yaw = currentSteerInput.x * maxYawAngle * 0.5f;
-        float lean = -currentSteerInput.x * maxRollAngle;
+        float pitch = -steering.y * maxPitchAngle;
+        float yaw = steering.x * maxYawAngle;
+        float roll = -steering.x * maxRollAngle + currentRollAngle;
 
         // Combine rotation with current barrel roll angle
-        Quaternion targetRotation = Quaternion.Euler(pitch, yaw, lean + currentRollAngle);
+        Quaternion targetRotation = Quaternion.Euler(pitch, yaw, roll);
         shipMesh.localRotation = Quaternion.Lerp(shipMesh.localRotation, targetRotation, 15f * Time.deltaTime);
     }
 
@@ -307,16 +294,7 @@ public class PlayerShipController : MonoBehaviour
         }
     }
 
-
-
     // ──────────────────────────────────────────────────────────────
     // Misc.
     // ──────────────────────────────────────────────────────────────
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(aimTarget.position, .5f);
-        Gizmos.DrawSphere(aimTarget.position, .15f);
-    }
 }

@@ -8,9 +8,17 @@ public class LaserProjectile : MonoBehaviour
 
     private float timer;
 
+    private Vector3 direction = Vector3.forward;
+
     private void OnEnable()
     {
         timer = 0f;
+    }
+
+    public void SetDirection(Vector3 dir)
+    {
+        direction = dir.normalized;
+        transform.rotation = Quaternion.LookRotation(direction); 
     }
 
     // Update is called once per frame
