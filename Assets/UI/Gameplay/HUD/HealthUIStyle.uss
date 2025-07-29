@@ -1,0 +1,35 @@
+.unity-ui-document__root
+{
+	flex-grow: 1; /* Full space */
+	align-items: flex-start;
+	justify-content: flex-start; 
+	padding: 20px;
+}
+
+.health-bar-container
+{
+	width: 200px;
+    height: 20px; 
+    background-color: rgba(0, 0, 0, 0.5);
+    border-width: 2px;
+    border-color: #ffffff; /* White */
+    border-radius: 5px; /* Slightly rounded corners */
+    overflow: hidden; /* Hide content outside the container */
+    margin-bottom: 10px; /* Space between bar and text */
+}
+
+.health-bar-fill
+{
+    width: 100%; /* Start full, control via script */
+    height: 100%;
+    border-radius: 3px; /* Rounded corners */
+}
+
+
+.health-text
+{
+    color: #ffffff;
+    font-size: 18px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+}

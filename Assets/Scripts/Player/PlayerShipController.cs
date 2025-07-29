@@ -18,7 +18,7 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private Transform shipMesh;
 
     [Header("Movement")]
-    [SerializeField] private float baseSpeed = 10f;
+    [SerializeField] private float baseSpeed = 5f;
     [Tooltip("Added by boost; subtracted by brake")]
     [SerializeField] private float boostDelta = 10f;
     [SerializeField] private float brakeDelta = 5f;
@@ -137,11 +137,6 @@ public class PlayerShipController : MonoBehaviour
     // ──────────────────────────────────────────────────────────────
     private void HandleOnRails()
     {
-        //currentSteerInput = Vector2.Lerp(currentSteerInput, targetInput, steeringSpeed * Time.deltaTime);
-
-        //// Calculate movement change based on input in relation to cinemachine path
-        //transform.localPosition += new Vector3(currentSteerInput.x, currentSteerInput.y, 0f) * steeringSpeed * Time.deltaTime;
-
         // Read the aimController offset for strafing the ship
         Vector2 offset2D = aimController.CloseTargetOffset;
 
@@ -257,17 +252,9 @@ public class PlayerShipController : MonoBehaviour
         transform.position += transform.up * currentSteerInput.y * currentSpeed * 0.5f * Time.deltaTime;
 
         // Rotate to match direction (optional look target smoothing)
-        Quaternion targetRot = Quaternion.Euler(
-            -currentSteerInput.y * maxPitchAngle,
-            currentSteerInput.x * maxYawAngle,
-            -currentSteerInput.x * maxRollAngle
-        );
+        Quaternion targetRot = Quaternion.Euler(-currentSteerInput.y * maxPitchAngle, currentSteerInput.x * maxYawAngle, -currentSteerInput.x * maxRollAngle);
 
-        shipMesh.localRotation = Quaternion.Lerp(
-            shipMesh.localRotation,
-            targetRot,
-            10f * Time.deltaTime
-        );
+        shipMesh.localRotation = Quaternion.Lerp(shipMesh.localRotation, targetRot, 10f * Time.deltaTime);
     }
 
     private void ReturnToRails()

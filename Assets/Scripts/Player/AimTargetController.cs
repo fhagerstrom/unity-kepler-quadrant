@@ -5,20 +5,19 @@ public class AimTargetController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Transform shipTransform;
     [SerializeField] private Transform closeTarget;   // child of the ship
-    [SerializeField] private Transform farTarget;     // either child or world object
+    [SerializeField] private Transform farTarget;     // Child of AimParent
 
     [Header("Settings")]
-    [SerializeField] public float maxRadius = 2f;   // max local offset of close target
+    [SerializeField] public float maxRadius = 1f;   // max local offset of close target
     [SerializeField] private float returnSpeed = 5f;   // higher = faster recentre
     [SerializeField] private float farDistance = 30f;  // distance of far target
-    [SerializeField] private float closeDistance = 10f;  // distance of far target
-    [SerializeField] private float rotationSpeed = 260f;  // distance of far target
+    [SerializeField] private float closeDistance = 10f;  // distance of close target
+    [SerializeField] private float rotationSpeed = 90f;  // Reticle rotation speed
     [SerializeField] private float deadzone = 0.1f; // ignore tiny input jitters
 
     [SerializeField] private bool invertY = true; // Invert controls?
 
     private Vector2 input;
-    private Vector3 velocity;
 
     private GameInputActions inputActions;
     private GameInputActions.FlyingActions flying;
@@ -28,7 +27,7 @@ public class AimTargetController : MonoBehaviour
     {
         get
         {
-            // closeTarget.localPosition.z is the forward distance; not needed in this context
+            // Z axis is not needed in this context
             return new Vector2(closeTarget.localPosition.x, closeTarget.localPosition.y);
         }
     }
@@ -38,8 +37,8 @@ public class AimTargetController : MonoBehaviour
         inputActions = new GameInputActions();
         flying = inputActions.Flying;
 
-        //flying.Steer.performed += ctx => input = ctx.ReadValue<Vector2>();
-        //flying.Steer.canceled += ctx => input = Vector2.zero;
+        flying.Steer.performed += ctx => input = ctx.ReadValue<Vector2>();
+        flying.Steer.canceled += ctx => input = Vector2.zero;
     }
 
     private void OnEnable() => inputActions.Enable();
@@ -47,9 +46,6 @@ public class AimTargetController : MonoBehaviour
 
     private void Update()
     {
-        // Continuously sample the current steer vector
-        input = flying.Steer.ReadValue<Vector2>();
-
         UpdateCloseTarget();
         UpdateFarTarget();
         RotateShipTowardsClose();
@@ -57,67 +53,66 @@ public class AimTargetController : MonoBehaviour
 
     private void UpdateCloseTarget()
     {
+        //// Read input, check if y input should be inverted or not (player option)
+        //float verticalInput = input.y;
+        //if (invertY)
+        //    verticalInput = -verticalInput;
+
+        //Vector2 aim2D = new Vector2(input.x, verticalInput);
+        //float mag = aim2D.magnitude;
+
+        //// Center ‐ forward position
+        //Vector3 centerLocal = new Vector3(0f, 0f, closeDistance);
+
+        //if (mag >= deadzone)
+        //{
+        //    // Snap exactly to stick direction
+        //    Vector2 dir = aim2D.normalized * Mathf.Min(mag, 1f) * maxRadius;
+        //    Vector3 desired = new Vector3(dir.x, dir.y, closeDistance);
+        //    closeTarget.localPosition = desired;
+
+        //    // Clear smoothing velocity for clean recenter later
+        //    //velocity = Vector3.zero;
+        //}
+        //else
+        //{
+        //    // Smoothly drift back to center
+        //    //closeTarget.localPosition = Vector3.SmoothDamp(
+        //    //    closeTarget.localPosition,
+        //    //    centerLocal,
+        //    //    ref velocity,
+        //    //    1f / returnSpeed
+        //    //);
+
+        //    closeTarget.localPosition = Vector3.Lerp(closeTarget.localPosition, centerLocal, Time.deltaTime * returnSpeed);
+        //}
+
         // Read input, check if y input should be inverted or not (player option)
         float verticalInput = input.y;
         if (invertY)
             verticalInput = -verticalInput;
 
-        Vector2 aim2D = new Vector2(input.x, verticalInput);
-        float mag = aim2D.magnitude;
+        Vector2 rawInput = new Vector2(input.x, verticalInput);
 
-        // Center ‐ forward position
-        Vector3 centerLocal = new Vector3(0f, 0f, closeDistance);
+        // Apply deadzone
+        if (rawInput.magnitude < deadzone)
+            rawInput = Vector2.zero;
 
-        if (mag >= deadzone)
-        {
-            // Snap exactly to stick direction
-            Vector2 dir = aim2D.normalized * Mathf.Min(mag, 1f) * maxRadius;
-            Vector3 desired = new Vector3(dir.x, dir.y, closeDistance);
-            closeTarget.localPosition = desired;
+        // Determine local offset
+        Vector2 inputDirection = rawInput.normalized;
+        float clampedMagnitude = Mathf.Min(rawInput.magnitude, 1f);
+        Vector2 offset2D = inputDirection * clampedMagnitude * maxRadius;
 
-            // Clear smoothing velocity for clean recenter later
-            //velocity = Vector3.zero;
-        }
-        else
-        {
-            // Smoothly drift back to center
-            //closeTarget.localPosition = Vector3.SmoothDamp(
-            //    closeTarget.localPosition,
-            //    centerLocal,
-            //    ref velocity,
-            //    1f / returnSpeed
-            //);
+        // Final position in local space (with forward Z offset)
+        Vector3 desiredLocalPosition = new Vector3(offset2D.x, offset2D.y, closeDistance);
 
-            closeTarget.localPosition = Vector3.Lerp(closeTarget.localPosition, centerLocal, Time.deltaTime * returnSpeed);
-        }
+        // Smoothing speed based on input state
+        float smoothingSpeed = (rawInput == Vector2.zero)
+            ? returnSpeed      // faster when recentering
+            : returnSpeed * 0.5f; // slower when steering
 
-        // Read input, check if y input should be inverted or not (player option)
-        //float verticalInput = input.y;
-        //if (invertY)
-        //    verticalInput = -verticalInput;
-
-        //Vector2 rawInput = new Vector2(input.x, verticalInput);
-        //float inputMagnitude = rawInput.magnitude;
-
-        //// Apply deadzone
-        //if (inputMagnitude < deadzone)
-        //    rawInput = Vector2.zero;
-
-        //// Determine local offset
-        //Vector2 inputDirection = rawInput.normalized;
-        //float clampedMagnitude = Mathf.Min(inputMagnitude, 1f);
-        //Vector2 offset2D = inputDirection * clampedMagnitude * maxRadius;
-
-        //// Final position in local space (with forward Z offset)
-        //Vector3 desiredLocalPosition = new Vector3(offset2D.x,offset2D.y,closeDistance);
-
-        //// Smoothing speed based on input state
-        //float smoothingSpeed = (rawInput == Vector2.zero)
-        //    ? returnSpeed      // faster when recentering
-        //    : returnSpeed * 0.5f; // slower when steering
-
-        //// Move the close target
-        //closeTarget.localPosition = Vector3.Lerp(closeTarget.localPosition,desiredLocalPosition,Time.deltaTime * smoothingSpeed);
+        // Move the close target
+        closeTarget.localPosition = Vector3.Lerp(closeTarget.localPosition, desiredLocalPosition, Time.deltaTime * smoothingSpeed);
     }
 
     private void UpdateFarTarget()
@@ -130,12 +125,9 @@ public class AimTargetController : MonoBehaviour
     private void RotateShipTowardsClose()
     {
         Vector3 aimDir = (closeTarget.position - shipTransform.position).normalized;
-        Quaternion desired = Quaternion.LookRotation(aimDir);
+        Quaternion desired = Quaternion.LookRotation(aimDir, shipTransform.up);
         float inputStrength = Mathf.Clamp01(input.magnitude);
         float effectiveSpeed = rotationSpeed * inputStrength; // Rotation "sensitivity" multiplied by amount of stick input
-        // float lerpFactorPerFrame = Time.deltaTime * (effectiveSpeed / 100f); // Only used if lerping the rotation of the ship
-
-        // shipTransform.rotation = Quaternion.Lerp(shipTransform.rotation, desired, lerpFactorPerFrame);
 
         shipTransform.rotation = Quaternion.RotateTowards(shipTransform.rotation, desired, effectiveSpeed * Time.deltaTime);
     }
