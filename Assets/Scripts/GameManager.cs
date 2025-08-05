@@ -71,7 +71,7 @@ public class GameManager : MonoBehaviour
         }
 
         Score += amount;
-        Debug.Log($"Score: {Score}");
+        Debug.Log($"Hits: {Score}");
     }
 
     // If needed

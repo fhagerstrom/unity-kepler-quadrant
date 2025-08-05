@@ -53,40 +53,6 @@ public class AimTargetController : MonoBehaviour
 
     private void UpdateCloseTarget()
     {
-        //// Read input, check if y input should be inverted or not (player option)
-        //float verticalInput = input.y;
-        //if (invertY)
-        //    verticalInput = -verticalInput;
-
-        //Vector2 aim2D = new Vector2(input.x, verticalInput);
-        //float mag = aim2D.magnitude;
-
-        //// Center ‐ forward position
-        //Vector3 centerLocal = new Vector3(0f, 0f, closeDistance);
-
-        //if (mag >= deadzone)
-        //{
-        //    // Snap exactly to stick direction
-        //    Vector2 dir = aim2D.normalized * Mathf.Min(mag, 1f) * maxRadius;
-        //    Vector3 desired = new Vector3(dir.x, dir.y, closeDistance);
-        //    closeTarget.localPosition = desired;
-
-        //    // Clear smoothing velocity for clean recenter later
-        //    //velocity = Vector3.zero;
-        //}
-        //else
-        //{
-        //    // Smoothly drift back to center
-        //    //closeTarget.localPosition = Vector3.SmoothDamp(
-        //    //    closeTarget.localPosition,
-        //    //    centerLocal,
-        //    //    ref velocity,
-        //    //    1f / returnSpeed
-        //    //);
-
-        //    closeTarget.localPosition = Vector3.Lerp(closeTarget.localPosition, centerLocal, Time.deltaTime * returnSpeed);
-        //}
-
         // Read input, check if y input should be inverted or not (player option)
         float verticalInput = input.y;
         if (invertY)

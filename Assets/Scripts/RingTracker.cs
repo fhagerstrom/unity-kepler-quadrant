@@ -1,35 +1,32 @@
 using UnityEngine;
 
-public class RingCollector : MonoBehaviour
+public class RingTracker : MonoBehaviour
 {
     [SerializeField] private GameObject ringPrefab;
     [SerializeField] private float passDelay = 0.1f;
 
-    private bool ringPassed = true;
+    private bool ringPassed = false;
 
     private void OnTriggerEnter(Collider other)
     {
-        // Check if entering collider belongs to player ship.
-        // PlayerShip should have Player tag
+        // Check if entering collider belongs to player ship AND if the ring hasn't been passed yet
         if (other.CompareTag("Player") && !ringPassed)
         {
             ringPassed = true;
 
             Debug.Log("Ring passed!");
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.AddRing();
+            }
+            else
+            {
+                Debug.LogWarning("GameManager instance not found. Cannot add ring count.");
+            }
+
+            Invoke(nameof(DeactivateRing), passDelay);
         }
-
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.AddRing();
-        }
-
-        else
-        {
-            Debug.LogWarning("GameManager instance not found.");
-        }
-
-        Invoke(nameof(DeactivateRing), passDelay);
-
     }
 
     private void DeactivateRing()

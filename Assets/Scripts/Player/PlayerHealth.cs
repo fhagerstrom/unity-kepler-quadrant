@@ -70,7 +70,7 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log("Player is dead!");
 
         // TODO: Implement death logic (animation or w/e)
-        // If (extraLives > 0), restart level. If (extraLives == 0), game over
+        // If (extraLives > 0), restart level / start from checkpoint. If (extraLives == 0), game over
     }
 
     // Reset health. For testing purposes.
