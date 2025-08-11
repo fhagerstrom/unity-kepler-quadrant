@@ -10,7 +10,7 @@ public class PlayerShipController : MonoBehaviour
     // ──────────────────────────────────────────────────────────────
     // Inspector vars
     [Header("References")]
-    [SerializeField] private CinemachineSplineCart cart;     // on PathFollower
+    [SerializeField] private CinemachineSplineCart cart;
     [SerializeField] private CinemachineCamera onRailsCam;
     [SerializeField] private CinemachineCamera freeFlightCam;
     [SerializeField] private AimTargetController aimController;
@@ -68,9 +68,9 @@ public class PlayerShipController : MonoBehaviour
 
     private void Awake()
     {
+        // New instances
         inputActions = new GameInputActions();
         flying = inputActions.Flying;
-
         cart = pathFollower.GetComponent<CinemachineSplineCart>();
 
         // inputActions bindings
@@ -84,8 +84,38 @@ public class PlayerShipController : MonoBehaviour
         flying.ToggleFlightMode.performed += _ => ToggleFlightMode();
     }
 
-    private void OnEnable() => inputActions.Enable();
-    private void OnDisable() => inputActions.Disable();
+    private void OnEnable()
+    {
+        // Subscribe to the GameManager's pause events
+        GameManager.OnGamePaused += inputActions.Disable;
+        GameManager.OnGameResumed += inputActions.Enable;
+
+        // Check if GameManager is already in a paused state. Enable / disable input actions
+        if (GameManager.Instance != null)
+        {
+            if (GameManager.Instance.IsPaused)
+            {
+                inputActions.Disable();
+            }
+            else
+            {
+                inputActions.Enable();
+            }
+        }
+        else
+        {
+            // If GameManager is null, it means we are in main menu or other non-gameplay scene.
+            // Disable input by default to avoid unintended actions.
+            inputActions.Disable();
+        }
+    }
+
+    private void OnDisable()
+    {
+        // Unsubscribe from the events
+        GameManager.OnGamePaused -= inputActions.Disable;
+        GameManager.OnGameResumed -= inputActions.Enable;
+    }
 
     void Start()
     {
@@ -146,8 +176,8 @@ public class PlayerShipController : MonoBehaviour
 
         // Apply strafing movement inside the viewport
         Vector3 strafe = new Vector3(normalizedX, normalizedY, 0f)
-                       * steeringSpeed
-                       * Time.deltaTime;
+                             * steeringSpeed
+                             * Time.deltaTime;
 
         transform.localPosition += strafe;
 
@@ -199,7 +229,6 @@ public class PlayerShipController : MonoBehaviour
         var rightLaser = LaserPool.instance.GetLaser();
         rightLaser.transform.position = firePointRight.position;
         rightLaser.transform.rotation = firePointRight.rotation;
-
     }
 
     private void TriggerBarrelRoll(int direction)
@@ -251,7 +280,7 @@ public class PlayerShipController : MonoBehaviour
         transform.position += transform.right * currentSteerInput.x * currentSpeed * 0.5f * Time.deltaTime;
         transform.position += transform.up * currentSteerInput.y * currentSpeed * 0.5f * Time.deltaTime;
 
-        // Rotate to match direction (optional look target smoothing)
+        // Rotate to match direction with look target smoothing
         Quaternion targetRot = Quaternion.Euler(-currentSteerInput.y * maxPitchAngle, currentSteerInput.x * maxYawAngle, -currentSteerInput.x * maxRollAngle);
 
         shipMesh.localRotation = Quaternion.Lerp(shipMesh.localRotation, targetRot, 10f * Time.deltaTime);
