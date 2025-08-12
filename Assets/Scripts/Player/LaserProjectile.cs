@@ -14,18 +14,6 @@ public class LaserProjectile : MonoBehaviour
     private void OnEnable()
     {
         timer = 0f;
-
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            Debug.LogError("RigidBody component not found on laser projectile!", this);
-        }
-        else
-        {
-            // Ensure Rigidbody is kinematic if you don't want physics forces
-            rb.isKinematic = true;
-        }
-
     }
 
     public void SetDirection(Vector3 dir)
@@ -52,7 +40,7 @@ public class LaserProjectile : MonoBehaviour
         }
     }
 
-    // Collision logic - Use rigidbody for solid hits and no overlapping
+    // Collision logic
     private void OnCollisionEnter(Collision collision)
     {
         // TODO: Damage logic and effects

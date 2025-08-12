@@ -1,11 +1,13 @@
 ﻿using UnityEngine;
+using System;
+using UnityEngine.InputSystem;
 
 public class AimTargetController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Transform shipTransform;
-    [SerializeField] private Transform closeTarget;   // child of the ship
-    [SerializeField] private Transform farTarget;     // Child of AimParent
+    [SerializeField] private Transform closeTarget;
+    [SerializeField] private Transform farTarget;
 
     [Header("Settings")]
     [SerializeField] public float maxRadius = 1f;   // max local offset of close target
@@ -15,34 +17,81 @@ public class AimTargetController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 90f;  // Reticle rotation speed
     [SerializeField] private float deadzone = 0.1f; // ignore tiny input jitters
 
-    [SerializeField] private bool invertY = true; // Invert controls?
+    [SerializeField] private bool invertY = true; // Bool for option later. Let player choose.
 
     private Vector2 input;
-
-    private GameInputActions inputActions;
-    private GameInputActions.FlyingActions flying;
+    private GameInputActions.FlyingActions flyingActions;
+    private bool isPaused = false;
 
     // Expose how far the closeTarget is offset in local X/Y
     public Vector2 CloseTargetOffset
     {
         get
         {
-            // Z axis is not needed in this context
             return new Vector2(closeTarget.localPosition.x, closeTarget.localPosition.y);
         }
     }
 
     private void Awake()
     {
-        inputActions = new GameInputActions();
-        flying = inputActions.Flying;
+        // Get the single, correct instance of the Flying actions.
+        if (GameManager.Instance != null)
+        {
+            flyingActions = GameManager.Instance.FlyingActions;
 
-        flying.Steer.performed += ctx => input = ctx.ReadValue<Vector2>();
-        flying.Steer.canceled += ctx => input = Vector2.zero;
+            // Subscribe to the Steer actions
+            flyingActions.Steer.performed += ctx => input = ctx.ReadValue<Vector2>();
+            flyingActions.Steer.canceled += ctx => input = Vector2.zero;
+        }
+        else
+        {
+            Debug.LogError("GameManager instance not found. Steering will not work!");
+        }
     }
 
-    private void OnEnable() => inputActions.Enable();
-    private void OnDisable() => inputActions.Disable();
+    private void OnEnable()
+    {
+        // Subscribe to the GameManager's pause events
+        GameManager.OnGamePaused += OnGamePaused;
+        GameManager.OnGameResumed += OnGameResumed;
+
+        // Get the initial pause state from the GameManager
+        if (GameManager.Instance != null)
+        {
+            isPaused = GameManager.Instance.IsPaused;
+
+            // Enable/disable based on the initial state
+            if (!isPaused)
+            {
+                flyingActions.Enable();
+            }
+            else
+            {
+                flyingActions.Disable();
+            }
+        }
+    }
+
+    private void OnDisable()
+    {
+        // Unsubscribe from the events
+        GameManager.OnGamePaused -= OnGamePaused;
+        GameManager.OnGameResumed -= OnGameResumed;
+        // Also disable input when the script is disabled.
+        flyingActions.Disable();
+    }
+
+    private void OnGamePaused()
+    {
+        isPaused = true;
+        flyingActions.Disable();
+    }
+
+    private void OnGameResumed()
+    {
+        isPaused = false;
+        flyingActions.Enable();
+    }
 
     private void Update()
     {
@@ -53,48 +102,42 @@ public class AimTargetController : MonoBehaviour
 
     private void UpdateCloseTarget()
     {
-        // Read input, check if y input should be inverted or not (player option)
         float verticalInput = input.y;
         if (invertY)
             verticalInput = -verticalInput;
 
         Vector2 rawInput = new Vector2(input.x, verticalInput);
 
-        // Apply deadzone
         if (rawInput.magnitude < deadzone)
             rawInput = Vector2.zero;
 
-        // Determine local offset
         Vector2 inputDirection = rawInput.normalized;
         float clampedMagnitude = Mathf.Min(rawInput.magnitude, 1f);
         Vector2 offset2D = inputDirection * clampedMagnitude * maxRadius;
 
-        // Final position in local space (with forward Z offset)
         Vector3 desiredLocalPosition = new Vector3(offset2D.x, offset2D.y, closeDistance);
 
-        // Smoothing speed based on input state
-        float smoothingSpeed = (rawInput == Vector2.zero)
-            ? returnSpeed      // faster when recentering
-            : returnSpeed * 0.5f; // slower when steering
+        float smoothingSpeed = (rawInput == Vector2.zero) ? returnSpeed : returnSpeed * 0.5f;
 
-        // Move the close target
         closeTarget.localPosition = Vector3.Lerp(closeTarget.localPosition, desiredLocalPosition, Time.deltaTime * smoothingSpeed);
     }
 
     private void UpdateFarTarget()
     {
-        // Project far target along the ship to closeTarget vector
         Vector3 worldAimDir = (closeTarget.position - shipTransform.position).normalized;
         farTarget.position = shipTransform.position + worldAimDir * farDistance;
     }
 
     private void RotateShipTowardsClose()
     {
-        Vector3 aimDir = (closeTarget.position - shipTransform.position).normalized;
-        Quaternion desired = Quaternion.LookRotation(aimDir, shipTransform.up);
-        float inputStrength = Mathf.Clamp01(input.magnitude);
-        float effectiveSpeed = rotationSpeed * inputStrength; // Rotation "sensitivity" multiplied by amount of stick input
+        if (input.magnitude > deadzone)
+        {
+            Vector3 aimDir = (closeTarget.position - shipTransform.position).normalized;
+            Quaternion desired = Quaternion.LookRotation(aimDir, shipTransform.up);
+            float inputStrength = Mathf.Clamp01(input.magnitude);
+            float effectiveSpeed = rotationSpeed * inputStrength;
 
-        shipTransform.rotation = Quaternion.RotateTowards(shipTransform.rotation, desired, effectiveSpeed * Time.deltaTime);
+            shipTransform.rotation = Quaternion.RotateTowards(shipTransform.rotation, desired, effectiveSpeed * Time.deltaTime);
+        }
     }
 }

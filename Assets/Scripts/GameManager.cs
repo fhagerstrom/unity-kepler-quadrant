@@ -63,7 +63,7 @@ public class GameManager : MonoBehaviour
         // Subscribe to the scene loaded event to reset the game state.
         SceneManager.sceneLoaded += OnSceneLoaded;
 
-        // The game always starts unpaused, enable flying and disable UI.
+        // Start the game in an unpaused state.
         SetPauseState(false);
     }
 
@@ -93,17 +93,11 @@ public class GameManager : MonoBehaviour
 
         if (isPaused)
         {
-            FlyingActions.Disable();
-            UIActions.Enable();
-
             OnGamePaused?.Invoke();
             Debug.Log("Game state changed: PAUSED");
         }
         else
         {
-            FlyingActions.Enable();
-            UIActions.Disable();
-
             OnGameResumed?.Invoke();
             Debug.Log("Game state changed: RESUMED");
         }
