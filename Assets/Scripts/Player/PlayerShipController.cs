@@ -113,8 +113,20 @@ public class PlayerShipController : MonoBehaviour
     private void OnDisable()
     {
         // Unsubscribe from the events
+        flying.Boost.performed -= _ => ChangeSpeed(+boostDelta);
+        flying.Boost.canceled -= _ => ChangeSpeed(-boostDelta);
+        flying.Brake.performed -= _ => ChangeSpeed(-brakeDelta);
+        flying.Brake.canceled -= _ => ChangeSpeed(+brakeDelta);
+        flying.Shoot.performed -= _ => Shoot();
+        flying.BarrelRollLeft.performed -= _ => TriggerBarrelRoll(-1);
+        flying.BarrelRollRight.performed -= _ => TriggerBarrelRoll(1);
+        flying.ToggleFlightMode.performed -= _ => ToggleFlightMode();
+
         GameManager.OnGamePaused -= inputActions.Disable;
         GameManager.OnGameResumed -= inputActions.Enable;
+
+        inputActions.Disable();
+        
     }
 
     void Start()
