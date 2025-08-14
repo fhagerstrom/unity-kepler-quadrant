@@ -11,9 +11,9 @@ GameObject:
   - component: {fileID: 4840077359158750798}
   - component: {fileID: 8396032570782802411}
   - component: {fileID: 6007877126883022113}
+  - component: {fileID: 3685246575173267394}
   - component: {fileID: 2295721007675548099}
   - component: {fileID: 145806287355181076}
-  - component: {fileID: 3685246575173267394}
   m_Layer: 0
   m_Name: EnemySaucer_Prototype
   m_TagString: Enemy
@@ -89,6 +89,27 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!135 &3685246575173267394
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5215370791455110388}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.457782
+  m_Center: {x: -0.000000029802322, y: 0.021246731, z: 0}
 --- !u!114 &2295721007675548099
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,24 +139,3 @@ MonoBehaviour:
   hoverSpeed: 1.5
   hoverOffset: 0
   rotationSpeedY: 90
---- !u!135 &3685246575173267394
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5215370791455110388}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.457782
-  m_Center: {x: -0.000000029802322, y: 0.021246731, z: 0}

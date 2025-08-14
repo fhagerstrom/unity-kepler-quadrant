@@ -45,13 +45,18 @@ public class PauseMenuController : MonoBehaviour
 
         // Setup button click handlers
         Button resumeBtn = root.Q<Button>("ResumeBtn");
+        Button restartBtn = root.Q<Button>("RestartBtn");
         Button optionsBtn = root.Q<Button>("OptionsBtn");
         Button mainMenuBtn = root.Q<Button>("MainMenuBtn");
-        Button quitBtn = root.Q<Button>("QuitBtn");
 
         if (resumeBtn != null)
         {
             resumeBtn.clicked += ResumeGame;
+        }
+
+        if (restartBtn != null)
+        {
+            restartBtn.clicked += RestartGame;
         }
 
         if (optionsBtn != null)
@@ -62,11 +67,6 @@ public class PauseMenuController : MonoBehaviour
         if (mainMenuBtn != null)
         {
             mainMenuBtn.clicked += ReturnToMainMenu;
-        }
-
-        if (quitBtn != null)
-        {
-            quitBtn.clicked += QuitGame;
         }
 
         // Enable UI action map.
@@ -140,6 +140,16 @@ public class PauseMenuController : MonoBehaviour
             GameManager.Instance.SetPauseState(false);
             pauseMenuRoot.style.display = DisplayStyle.None;
         }
+    }
+
+    public void RestartGame()
+    {
+        // First, ensure the game is unpaused before loading the new scene.
+        Time.timeScale = 1f;
+        GameManager.Instance.SetPauseState(false);
+
+        // Get the name of the currently active scene and reload it.
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     private void ShowOptions()

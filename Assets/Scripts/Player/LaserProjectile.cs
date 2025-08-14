@@ -8,8 +8,15 @@ public class LaserProjectile : MonoBehaviour
     [SerializeField] private int damageAmount = 10;
 
     private float timer;
+    private int passthroughLayer;
 
     private Vector3 direction = Vector3.forward;
+
+    private void Awake()
+    {
+        // Cache the layer index
+        passthroughLayer = LayerMask.NameToLayer("Passthrough");
+    }
 
     private void OnEnable()
     {
@@ -40,15 +47,21 @@ public class LaserProjectile : MonoBehaviour
         }
     }
 
-    // Collision logic
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerEnter(Collider other)
     {
-        // TODO: Damage logic and effects
-        HandleHit(collision.gameObject);
+        if (other.gameObject.layer != passthroughLayer)
+        {
+            // Valid hit, perform checks.
+            // Check if the collided object has the "Enemy" tag.
+            if (other.CompareTag("Enemy"))
+            {
+                HandleHit(other.gameObject);
+            }
 
-        // Deactivate on hit
-        gameObject.SetActive(false);
-        LaserPool.instance.ReturnLaser(gameObject); // Recycle
+            // After all other checks, return the laser to the pool.
+            // Ensures ReturnToPool() is only ever called once per hit.
+            ReturnToPool();
+        }
     }
 
     private void HandleHit(GameObject hitObject)
@@ -62,18 +75,10 @@ public class LaserProjectile : MonoBehaviour
             Debug.Log($"Laser hit {hitObject.name} for {damageAmount} damage.");
         }
 
-        // else if (hitObject.CompareTag("Environment"))
-        // {
-        //     Debug.Log("Hit environment!");
-        // }
-
         else
         {
-            // --- ADD THIS DEBUG LOG ---
-            Debug.Log($"Laser hit {hitObject.name}, but no EnemyHealth script found on it or its direct children.", hitObject);
-            // --- END ADDITION ---
+            Debug.Log($"Laser hit {hitObject.name}, but no EnemyHealth script found on it.", hitObject);
         }
-
 
         // Always return the laser to the pool after hitting anything
         ReturnToPool();
