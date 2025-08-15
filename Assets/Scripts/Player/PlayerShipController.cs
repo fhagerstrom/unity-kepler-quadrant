@@ -23,6 +23,16 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private float boostDelta = 10f;
     [SerializeField] private float brakeDelta = 5f;
     [SerializeField] private float steeringSpeed = 15f;
+    [SerializeField] private float speedSmoothTime = 0.2f; // Time for the speed to smooth between values
+
+    [Header("Boost/Brake Fuel")]
+    [Tooltip("How long the fuel lasts when boosting/braking")]
+    [SerializeField] private float fuelDuration = 2.0f;
+    [Tooltip("How quickly the fuel recharges when not in use")]
+    [SerializeField] private float fuelRecoveryRate = 1.0f;
+    private float currentBoostFuel;
+    private bool isBoosting;
+    private bool isBraking;
 
     [Header("Ship Mesh Tilting")]
     [SerializeField] private float maxRollAngle = 60f;
@@ -39,6 +49,8 @@ public class PlayerShipController : MonoBehaviour
     // ──────────────────────────────────────────────────────────────
     // Private vars
 
+    public float BoostFuelRatio => currentBoostFuel / fuelDuration;
+
     private enum FlightMode
     {
         OnRails,
@@ -52,6 +64,8 @@ public class PlayerShipController : MonoBehaviour
 
     private ISplineAutoDolly autoDolly;
     private float currentSpeed;
+    private float targetSpeed;
+    private float speedVelocity; // For smoothDamp
 
     // Steering
     private Vector2 targetInput;
@@ -74,10 +88,10 @@ public class PlayerShipController : MonoBehaviour
         cart = pathFollower.GetComponent<CinemachineSplineCart>();
 
         // inputActions bindings
-        flying.Boost.performed += _ => ChangeSpeed(+boostDelta);
-        flying.Boost.canceled += _ => ChangeSpeed(-boostDelta);
-        flying.Brake.performed += _ => ChangeSpeed(-brakeDelta);
-        flying.Brake.canceled += _ => ChangeSpeed(+brakeDelta);
+        flying.Boost.performed += _ => OnBoostInput(true);
+        flying.Boost.canceled += _ => OnBoostInput(false);
+        flying.Brake.performed += _ => OnBrakeInput(true);
+        flying.Brake.canceled += _ => OnBrakeInput(false);
         flying.Shoot.performed += _ => Shoot();
         flying.BarrelRollLeft.performed += _ => TriggerBarrelRoll(-1);
         flying.BarrelRollRight.performed += _ => TriggerBarrelRoll(1);
@@ -113,10 +127,10 @@ public class PlayerShipController : MonoBehaviour
     private void OnDisable()
     {
         // Unsubscribe from the events
-        flying.Boost.performed -= _ => ChangeSpeed(+boostDelta);
-        flying.Boost.canceled -= _ => ChangeSpeed(-boostDelta);
-        flying.Brake.performed -= _ => ChangeSpeed(-brakeDelta);
-        flying.Brake.canceled -= _ => ChangeSpeed(+brakeDelta);
+        flying.Boost.performed -= _ => OnBoostInput(true);
+        flying.Boost.canceled -= _ => OnBoostInput(false);
+        flying.Brake.performed -= _ => OnBrakeInput(true);
+        flying.Brake.canceled -= _ => OnBrakeInput(false);
         flying.Shoot.performed -= _ => Shoot();
         flying.BarrelRollLeft.performed -= _ => TriggerBarrelRoll(-1);
         flying.BarrelRollRight.performed -= _ => TriggerBarrelRoll(1);
@@ -126,7 +140,7 @@ public class PlayerShipController : MonoBehaviour
         GameManager.OnGameResumed -= inputActions.Enable;
 
         inputActions.Disable();
-        
+
     }
 
     void Start()
@@ -135,7 +149,8 @@ public class PlayerShipController : MonoBehaviour
         {
             autoDolly = fs;
             currentSpeed = baseSpeed;
-            fs.Speed = currentSpeed;    // initialize speed once
+            targetSpeed = baseSpeed;
+            fs.Speed = currentSpeed;     // initialize speed once
         }
         else
         {
@@ -143,6 +158,8 @@ public class PlayerShipController : MonoBehaviour
             enabled = false;
             return;
         }
+
+        currentBoostFuel = fuelDuration;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -164,7 +181,11 @@ public class PlayerShipController : MonoBehaviour
             HandleFreeFlight();
         }
 
+        HandleBoostAndBrakeFuel();
         UpdateBarrelRoll();
+
+        // Smoothly move towards the target speed
+        currentSpeed = Mathf.SmoothDamp(currentSpeed, targetSpeed, ref speedVelocity, speedSmoothTime);
     }
 
     private void FixedUpdate()
@@ -188,8 +209,8 @@ public class PlayerShipController : MonoBehaviour
 
         // Apply strafing movement inside the viewport
         Vector3 strafe = new Vector3(normalizedX, normalizedY, 0f)
-                             * steeringSpeed
-                             * Time.deltaTime;
+                              * steeringSpeed
+                              * Time.deltaTime;
 
         transform.localPosition += strafe;
 
@@ -218,9 +239,56 @@ public class PlayerShipController : MonoBehaviour
         shipMesh.localRotation = Quaternion.Lerp(shipMesh.localRotation, targetRotation, 15f * Time.deltaTime);
     }
 
-    private void ChangeSpeed(float delta)
+    private void OnBoostInput(bool isPressed)
     {
-        currentSpeed = Mathf.Max(0, currentSpeed + delta);
+        isBoosting = isPressed;
+        isBraking = false;
+
+        if (isBoosting && currentBoostFuel > 0)
+        {
+            targetSpeed = baseSpeed + boostDelta;
+        }
+        else
+        {
+            targetSpeed = baseSpeed;
+        }
+    }
+
+    private void OnBrakeInput(bool isPressed)
+    {
+        isBraking = isPressed;
+        isBoosting = false;
+
+        if (isBraking && currentBoostFuel > 0)
+        {
+            targetSpeed = baseSpeed - brakeDelta;
+        }
+        else
+        {
+            targetSpeed = baseSpeed;
+        }
+    }
+
+    private void HandleBoostAndBrakeFuel()
+    {
+        // Drain fuel if boosting or braking
+        if ((isBoosting || isBraking) && currentBoostFuel > 0)
+        {
+            currentBoostFuel -= Time.deltaTime;
+
+            // If fuel runs out while holding, stop the boost/brake
+            if (currentBoostFuel <= 0)
+            {
+                isBoosting = false;
+                isBraking = false;
+                targetSpeed = baseSpeed;
+            }
+        }
+        // Recover fuel if not boosting or braking
+        else if (!isBoosting && !isBraking)
+        {
+            currentBoostFuel = Mathf.Min(fuelDuration, currentBoostFuel + Time.deltaTime * fuelRecoveryRate);
+        }
     }
 
     private void Shoot()

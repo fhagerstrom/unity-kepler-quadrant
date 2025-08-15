@@ -238,7 +238,7 @@ Transform:
   m_GameObject: {fileID: 81479335}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.0000000132206255, z: 0, w: 1}
-  m_LocalPosition: {x: -0.000000031372707, y: 5, z: 69.571976}
+  m_LocalPosition: {x: 0.0000002644125, y: 5, z: -148.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -429,6 +429,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hudUiDoc: {fileID: 182358887}
   playerHealth: {fileID: 9066257662886078848}
+  playerShipController: {fileID: 9066257662886078851}
 --- !u!114 &182358887
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7279,7 +7280,7 @@ Transform:
   m_GameObject: {fileID: 1592619427}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.0000000132206255, z: 0, w: 1}
-  m_LocalPosition: {x: -0.0000002957852, y: 5, z: 79.571976}
+  m_LocalPosition: {x: 0, y: 5, z: -138.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7301,7 +7302,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_SplineSettings:
     Spline: {fileID: 1866964343}
-    Position: 225.72
+    Position: 0
     Units: 0
   UpdateMethod: 0
   AutomaticDolly:
@@ -11079,6 +11080,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4737f25c3a956d9408497cab4395f275, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &9066257662886078851 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2614350984803728775, guid: 1cf55714a7ce810438f9dce642ac811e, type: 3}
+  m_PrefabInstance: {fileID: 3046572194660440900}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 788a5ca7917227f4fbcf3f82b14c14ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807

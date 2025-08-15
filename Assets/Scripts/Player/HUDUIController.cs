@@ -5,15 +5,14 @@ public class HUDUIController : MonoBehaviour
 {
     [SerializeField] private UIDocument hudUiDoc; // HUDUI.uxml
     [SerializeField] private PlayerHealth playerHealth;
+    [SerializeField] private PlayerShipController playerShipController;
 
     private VisualElement healthBarFill;
+    private VisualElement boostMeter;
     private Label healthTextLabel;
+    private Label ringsTextLabel;
+    private Label scoreTextLabel;
 
-    // Rings UI Elements
-    private Label ringsPassedLabel;
-
-    // Score UI Elements
-    private Label scoreLabel;
 
     private void OnEnable()
     {
@@ -30,6 +29,12 @@ public class HUDUIController : MonoBehaviour
             Debug.LogError("HealthBar visual not found.");
         }
 
+        boostMeter = hudUiDoc.rootVisualElement.Q<VisualElement>("BoostMeterFill");
+        if (boostMeter == null)
+        {
+            Debug.LogError("Boost meter visual not found.", this);
+        }
+
         if (playerHealth != null)
         {
             playerHealth.OnHealthChanged += UpdateHealthUI;
@@ -43,15 +48,15 @@ public class HUDUIController : MonoBehaviour
         }
 
         healthTextLabel = hudUiDoc.rootVisualElement.Q<Label>("HealthText");
-        ringsPassedLabel = hudUiDoc.rootVisualElement.Q<Label>("RingsPassedLabel");
+        ringsTextLabel = hudUiDoc.rootVisualElement.Q<Label>("RingsText");
         
-        if (ringsPassedLabel == null)
+        if (ringsTextLabel == null)
         {
             Debug.LogError("RingsPassedLabel not found in HUD.uxml. Check name in UI Builder.", this);
         }
 
-        scoreLabel = hudUiDoc.rootVisualElement.Q<Label>("ScoreLabel");
-        if (scoreLabel == null)
+        scoreTextLabel = hudUiDoc.rootVisualElement.Q<Label>("ScoreLabel");
+        if (scoreTextLabel == null)
         {
             Debug.LogError("ScoreLabel not found in HUD.uxml. Check name in UI Builder.", this);
         }
@@ -87,7 +92,11 @@ public class HUDUIController : MonoBehaviour
         }
     }
 
-
+    void Update()
+    {
+        // Update the boost cooldown UI
+        UpdateBoostCooldownUI();
+    }
 
     /// <summary>
     /// Updates health bar fill width and text label based on current health.
@@ -123,14 +132,40 @@ public class HUDUIController : MonoBehaviour
         }
     }
 
+    private void UpdateBoostCooldownUI()
+    {
+        if (boostMeter == null || playerShipController == null)
+        {
+            return;
+        }
+
+        // Get the current fuel ratio from the PlayerShipController (0 to 1)
+        float fuelRatio = playerShipController.BoostFuelRatio;
+
+        // Set width of the boost meter fill element
+        boostMeter.style.width = Length.Percent(fuelRatio * 100f);
+
+        // Change color to indicate when the fuel is full
+        if (fuelRatio < 1.0f)
+        {
+            // Fuel is being used or recharging
+            boostMeter.style.backgroundColor = new StyleColor(Color.grey);
+        }
+        else
+        {
+            // Fuel is full and ready to use
+            boostMeter.style.backgroundColor = new StyleColor(Color.cyan);
+        }
+    }
+
     /// <summary>
     /// Updates the rings passed UI label.
     /// </summary>
     private void UpdateRingsPassedUI(int rings)
     {
-        if (ringsPassedLabel != null)
+        if (ringsTextLabel != null)
         {
-            ringsPassedLabel.text = $"Rings: {rings.ToString("D3")}"; // Format numbers as 000, 001 etc.
+            ringsTextLabel.text = $"Rings: {rings.ToString("D3")}"; // Format numbers as 000, 001 etc.
         }
     }
 
@@ -139,9 +174,9 @@ public class HUDUIController : MonoBehaviour
     /// </summary>
     private void UpdateScoreUI(int score)
     {
-        if (scoreLabel != null)
+        if (scoreTextLabel != null)
         {
-            scoreLabel.text = $"Hits: {score.ToString("D3")}"; // Format numbers as 000, 001 etc.
+            scoreTextLabel.text = $"Hits: {score.ToString("D3")}"; // Format numbers as 000, 001 etc.
         }
     }
 }
