@@ -23,14 +23,16 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private float boostDelta = 10f;
     [SerializeField] private float brakeDelta = 5f;
     [SerializeField] private float steeringSpeed = 15f;
-    [SerializeField] private float speedSmoothTime = 0.2f; // Time for the speed to smooth between values
+    [SerializeField] private float speedSmoothTime = 0.2f; // Time for the speed to smooth between value
 
     [Header("Boost/Brake Fuel")]
     [Tooltip("How long the fuel lasts when boosting/braking")]
     [SerializeField] private float fuelDuration = 2.0f;
     [Tooltip("How quickly the fuel recharges when not in use")]
     [SerializeField] private float fuelRecoveryRate = 1.0f;
+    [SerializeField] private float rechargeDelay = 0.4f;
     private float currentBoostFuel;
+    private float rechargeCooldownTimer;
     private bool isBoosting;
     private bool isBraking;
 
@@ -43,8 +45,26 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private Transform firePointLeft;
     [SerializeField] private Transform firePointRight;
     [SerializeField] private float fireCooldown = 0.1f;
-
     private float fireTimer;
+
+    
+    [Header("Visual Effects")]
+    [Tooltip("The Z-offset of the ship mesh relative to the camera.")]
+    [SerializeField] private float normalZOffset = 0f;
+    [Tooltip("How far forward the ship moves when boosting.")]
+    [SerializeField] private float boostZOffset = 1.0f;
+    [Tooltip("How far back the ship moves when braking.")]
+    [SerializeField] private float brakeZOffset = -0.5f;
+    [Tooltip("How smoothly the ship moves to the target Z-offset.")]
+    [SerializeField] private float positionTransitionSpeed = 5f;
+    [SerializeField] private float normalFOV;
+    [SerializeField] private float boostFOV = 60f;
+    [SerializeField] private float brakeFOV = 35f;
+
+    private float currentFOV;
+    private float targetFOV;
+    private float currentZOffset;
+    private float targetZOffset;
 
     // ──────────────────────────────────────────────────────────────
     // Private vars
@@ -160,6 +180,16 @@ public class PlayerShipController : MonoBehaviour
         }
 
         currentBoostFuel = fuelDuration;
+
+        // Initialize Z-offset to the normal value
+        currentZOffset = normalZOffset;
+        targetZOffset = normalZOffset;
+        shipMesh.localPosition = new Vector3(0, 0, currentZOffset);
+
+        // initialize FOV values
+        normalFOV = onRailsCam.Lens.FieldOfView;
+        currentFOV = normalFOV;
+        targetFOV = normalFOV;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -181,11 +211,20 @@ public class PlayerShipController : MonoBehaviour
             HandleFreeFlight();
         }
 
+        // Decrement the cooldown timer each frame.
+        if (rechargeCooldownTimer > 0)
+        {
+            rechargeCooldownTimer -= Time.deltaTime;
+        }
+
         HandleBoostAndBrakeFuel();
         UpdateBarrelRoll();
 
         // Smoothly move towards the target speed
         currentSpeed = Mathf.SmoothDamp(currentSpeed, targetSpeed, ref speedVelocity, speedSmoothTime);
+
+        UpdateZOffset();
+        UpdateFovEffects();
     }
 
     private void FixedUpdate()
@@ -209,8 +248,8 @@ public class PlayerShipController : MonoBehaviour
 
         // Apply strafing movement inside the viewport
         Vector3 strafe = new Vector3(normalizedX, normalizedY, 0f)
-                              * steeringSpeed
-                              * Time.deltaTime;
+                             * steeringSpeed
+                             * Time.deltaTime;
 
         transform.localPosition += strafe;
 
@@ -241,31 +280,39 @@ public class PlayerShipController : MonoBehaviour
 
     private void OnBoostInput(bool isPressed)
     {
-        isBoosting = isPressed;
-        isBraking = false;
-
-        if (isBoosting && currentBoostFuel > 0)
+        // If fuel is full (ratio is 1.0), We're allowed to brake
+        if (isPressed && BoostFuelRatio >= 1.0f)
         {
+            isBoosting = true;
+            isBraking = false;
             targetSpeed = baseSpeed + boostDelta;
         }
         else
         {
-            targetSpeed = baseSpeed;
+            isBoosting = false;
+            if (!isBraking)
+            {
+                targetSpeed = baseSpeed;
+            }
         }
     }
 
     private void OnBrakeInput(bool isPressed)
     {
-        isBraking = isPressed;
-        isBoosting = false;
-
-        if (isBraking && currentBoostFuel > 0)
+        // If fuel is full (ratio is 1.0), We're allowed to brake
+        if (isPressed && BoostFuelRatio >= 1.0f)
         {
+            isBraking = true;
+            isBoosting = false;
             targetSpeed = baseSpeed - brakeDelta;
         }
         else
         {
-            targetSpeed = baseSpeed;
+            isBraking = false;
+            if (!isBoosting)
+            {
+                targetSpeed = baseSpeed;
+            }
         }
     }
 
@@ -276,13 +323,23 @@ public class PlayerShipController : MonoBehaviour
         {
             currentBoostFuel -= Time.deltaTime;
 
+            rechargeCooldownTimer = rechargeDelay;
+
             // If fuel runs out while holding, stop the boost/brake
             if (currentBoostFuel <= 0)
             {
                 isBoosting = false;
                 isBraking = false;
                 targetSpeed = baseSpeed;
+                currentBoostFuel = 0;
             }
+
+            // Check cooldown timer before allowing boost gauge to recover
+            else if (rechargeCooldownTimer <= 0)
+            {
+                currentBoostFuel = Mathf.Min(fuelDuration, currentBoostFuel + Time.deltaTime * fuelRecoveryRate);
+            }
+
         }
         // Recover fuel if not boosting or braking
         else if (!isBoosting && !isBraking)
@@ -388,6 +445,57 @@ public class PlayerShipController : MonoBehaviour
             freeFlightCam.Priority = 1;
             ReturnToRails();
         }
+    }
+
+    private void UpdateZOffset()
+    {
+        // Determine the target Z-offset based on boost/brake state.
+        if (isBoosting)
+        {
+            targetZOffset = boostZOffset;
+        }
+        else if (isBraking)
+        {
+            targetZOffset = brakeZOffset;
+        }
+        else
+        {
+            // When not boosting or braking, return to the normal offset.
+            targetZOffset = normalZOffset;
+        }
+
+        // Smoothly transition the current Z-offset towards the target.
+        currentZOffset = Mathf.Lerp(currentZOffset, targetZOffset, positionTransitionSpeed * Time.deltaTime);
+
+        // Apply the new local Z-position to the ship's mesh.
+        shipMesh.localPosition = new Vector3(0, 0, currentZOffset);
+    }
+
+    private void UpdateFovTargets()
+    {
+        if (isBoosting)
+        {
+            targetFOV = boostFOV;
+        }
+        else if (isBraking)
+        {
+            targetFOV = brakeFOV;
+        }
+        else
+        {
+            targetFOV = normalFOV;
+        }
+    }
+
+    private void UpdateFovEffects()
+    {
+        UpdateFovTargets();
+
+        // Smoothly transition the current FOV towards the target
+        currentFOV = Mathf.Lerp(currentFOV, targetFOV, positionTransitionSpeed * Time.deltaTime);
+
+        // Apply the new FOV to the camera
+        onRailsCam.Lens.FieldOfView = currentFOV;
     }
 
     // ──────────────────────────────────────────────────────────────

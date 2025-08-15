@@ -52,13 +52,13 @@ public class HUDUIController : MonoBehaviour
         
         if (ringsTextLabel == null)
         {
-            Debug.LogError("RingsPassedLabel not found in HUD.uxml. Check name in UI Builder.", this);
+            Debug.LogError("RingsText not found in HUD.uxml. Check name in UI Builder.", this);
         }
 
-        scoreTextLabel = hudUiDoc.rootVisualElement.Q<Label>("ScoreLabel");
+        scoreTextLabel = hudUiDoc.rootVisualElement.Q<Label>("ScoreText");
         if (scoreTextLabel == null)
         {
-            Debug.LogError("ScoreLabel not found in HUD.uxml. Check name in UI Builder.", this);
+            Debug.LogError("ScoreText not found in HUD.uxml. Check name in UI Builder.", this);
         }
 
         if (GameManager.Instance != null)

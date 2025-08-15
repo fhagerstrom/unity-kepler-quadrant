@@ -6,6 +6,8 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private int maxHealth = 25;
     private int currentHealth;
 
+    [SerializeField] private int scoreValue = 1;
+
     // Events
     public event Action<int, int> OnHealthChanged; // currentHealth, maxHealth
     public event Action OnDied; // When enemy is destroyed
@@ -42,6 +44,13 @@ public class EnemyHealth : MonoBehaviour
     {
         Debug.Log($"{gameObject.name} has been defeated!");
         OnDied?.Invoke(); // Notify listeners of death
+
+        // Check if gamemanager exists
+        if (GameManager.Instance != null)
+        {
+            // Add score to tally when enemy is killed
+            GameManager.Instance.AddScore(scoreValue);
+        }
 
         // TODO: Add explosion effects, sound, score, etc.
         gameObject.SetActive(false);
