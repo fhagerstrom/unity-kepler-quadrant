@@ -1,9 +1,11 @@
 using UnityEngine;
 using System;
+using UnityEngine.SceneManagement;
 
 public class PlayerHealth : MonoBehaviour
 {
 
+    [SerializeField] private PlayerShipController playerShipController;
     [SerializeField] private int maxHealth = 100;
     private int currentHealth;
 
@@ -38,7 +40,7 @@ public class PlayerHealth : MonoBehaviour
         // Health has changed, notify listeners
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
-        if (currentHealth < 0)
+        if (currentHealth <= 0)
         {
             Die();
         }
@@ -67,9 +69,11 @@ public class PlayerHealth : MonoBehaviour
     /// </summary>
     public void Die()
     {
+
         Debug.Log("Player is dead!");
 
-        // TODO: Implement death logic (animation or w/e)
+        GameManager.Instance.StartDeathSequence(this.gameObject);
+
         // If (extraLives > 0), restart level / start from checkpoint. If (extraLives == 0), game over
     }
 

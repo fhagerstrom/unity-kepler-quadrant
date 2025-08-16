@@ -149,7 +149,9 @@ public class PauseMenuController : MonoBehaviour
         GameManager.Instance.SetPauseState(false);
 
         // Get the name of the currently active scene and reload it.
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        //SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
+        GameManager.Instance.ReloadCurrentScene();
     }
 
     private void ShowOptions()

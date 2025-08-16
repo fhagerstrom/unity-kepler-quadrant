@@ -9,10 +9,22 @@ public class HUDUIController : MonoBehaviour
 
     private VisualElement healthBarFill;
     private VisualElement boostMeter;
+    private VisualElement gameOverScreen;
     private Label healthTextLabel;
     private Label ringsTextLabel;
     private Label scoreTextLabel;
 
+    private Color greenHealthColor = new Color();
+    private Color yellowHealthColor = new Color();
+    private Color redHealthColor = new Color();
+
+    private void Start()
+    {
+        // Parse the hex codes into Color objects once.
+        ColorUtility.TryParseHtmlString("#009900", out greenHealthColor);
+        ColorUtility.TryParseHtmlString("#FFEC00", out yellowHealthColor);
+        ColorUtility.TryParseHtmlString("#FF0000", out redHealthColor);
+    }
 
     private void OnEnable()
     {
@@ -75,6 +87,12 @@ public class HUDUIController : MonoBehaviour
         {
             Debug.LogError("GameManager Instance not found! Check if GameManager is initialized before", this);
         }
+
+        gameOverScreen = hudUiDoc.rootVisualElement.Q<VisualElement>("gameOverScreen");
+        if (gameOverScreen == null)
+        {
+            Debug.LogError("Game Over Screen not found in HUD.uxml. Check name in UI Builder.", this);
+        }
     }
 
     void OnDisable()
@@ -104,7 +122,10 @@ public class HUDUIController : MonoBehaviour
     /// </summary>
     private void UpdateHealthUI(int currentHealth, int maxHealth)
     {
-        if (healthBarFill == null || healthTextLabel == null) return;
+        if (healthBarFill == null || healthTextLabel == null)
+        {
+            return;
+        }
 
         // Calculate health percentage
         float healthPercentage = (float)currentHealth / maxHealth * 100f;
@@ -118,17 +139,15 @@ public class HUDUIController : MonoBehaviour
         // Change color based on health (yellow below 50%, red below 25%)
         if (healthPercentage <= 25f)
         {
-            healthBarFill.style.backgroundColor = new StyleColor(Color.red);
+            healthBarFill.style.backgroundColor = new StyleColor(redHealthColor);
         }
-
         else if (healthPercentage <= 50f)
         {
-            healthBarFill.style.backgroundColor = new StyleColor(Color.yellow);
+            healthBarFill.style.backgroundColor = new StyleColor(yellowHealthColor);
         }
-
         else
         {
-            healthBarFill.style.backgroundColor = new StyleColor(Color.green);
+            healthBarFill.style.backgroundColor = new StyleColor(greenHealthColor);
         }
     }
 
@@ -177,6 +196,17 @@ public class HUDUIController : MonoBehaviour
         if (scoreTextLabel != null)
         {
             scoreTextLabel.text = $"Hits: {score.ToString("D3")}"; // Format numbers as 000, 001 etc.
+        }
+    }
+
+    /// <summary>
+    /// Show Game Over UI.
+    /// </summary>
+    public void ShowGameOverScreen()
+    {
+        if (gameOverScreen != null)
+        {
+            gameOverScreen.style.display = DisplayStyle.Flex;
         }
     }
 }

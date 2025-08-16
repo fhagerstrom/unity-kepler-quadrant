@@ -7,6 +7,9 @@ public class LaserProjectile : MonoBehaviour
     [SerializeField] private float lifeTime = 2f;
     [SerializeField] private int damageAmount = 10;
 
+    [Tooltip("The tag of the object that fired this laser.")]
+    [SerializeField] private string ownerTag;
+
     private float timer;
     private int passthroughLayer;
 
@@ -35,6 +38,12 @@ public class LaserProjectile : MonoBehaviour
         UpdateLaser();
     }
 
+    // Set owner tag of the laser. To distinguish who shot it. Prevents self-damage
+    public void SetOwnerTag(string tag)
+    {
+        ownerTag = tag;
+    }
+
     private void UpdateLaser()
     {
         transform.position += transform.forward * speed * Time.deltaTime; // Shoot projectile forward
@@ -49,39 +58,39 @@ public class LaserProjectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.layer != passthroughLayer)
+        // Check if the collided object has the same tag as the owner
+        // Prevents the shooter from shooting themselves
+        if (other.gameObject.CompareTag(ownerTag))
         {
-            // Valid hit, perform checks.
-            // Check if the collided object has the "Enemy" tag.
-            if (other.CompareTag("Enemy"))
-            {
-                HandleHit(other.gameObject);
-            }
-
-            // After all other checks, return the laser to the pool.
-            // Ensures ReturnToPool() is only ever called once per hit.
-            ReturnToPool();
+            Debug.Log($"Laser from {ownerTag} ignored collision with its owner: {other.gameObject.name}");
+            return;
         }
-    }
 
-    private void HandleHit(GameObject hitObject)
-    {
-        // Try to get the EnemyHealth component from the hit object
-        EnemyHealth enemyHealth = hitObject.GetComponent<EnemyHealth>();
+        // Check if the collided object is on the passthrough layer.
+        // The laser will ignore it and continue flying.
+        if (other.gameObject.layer == passthroughLayer)
+        {
+            return;
+        }
+
+        // Handle other collisions
+        // PLAYER
+        PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            playerHealth.TakeDamage(damageAmount);
+        }
+
+        // ENEMY
+        EnemyHealth enemyHealth = other.GetComponent<EnemyHealth>();
         if (enemyHealth != null)
         {
-            // If it has EnemyHealth, apply damage
             enemyHealth.TakeDamage(damageAmount);
-            Debug.Log($"Laser hit {hitObject.name} for {damageAmount} damage.");
         }
 
-        else
-        {
-            Debug.Log($"Laser hit {hitObject.name}, but no EnemyHealth script found on it.", hitObject);
-        }
-
-        // Always return the laser to the pool after hitting anything
+        // Always return the laser to the pool after hitting anything else
         ReturnToPool();
+
     }
 
     private void ReturnToPool()

@@ -28,6 +28,12 @@ public class CameraTarget : MonoBehaviour
 
     void Update()
     {
+
+        if (target == null) // If the player object is destroyed, exit
+        {
+            return;
+        }
+
         if (!Application.isPlaying)
         {
             transform.localPosition = offset;

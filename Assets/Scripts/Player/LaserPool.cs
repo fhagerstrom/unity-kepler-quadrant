@@ -6,7 +6,7 @@ public class LaserPool : MonoBehaviour
     public static LaserPool instance;
 
     [SerializeField] private GameObject laserObject;
-    [SerializeField] private int poolSize = 20;
+    [SerializeField] private int poolSize = 75;
 
     private Queue<GameObject> pool = new Queue<GameObject>();
 

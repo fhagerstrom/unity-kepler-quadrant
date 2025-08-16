@@ -47,8 +47,7 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private float fireCooldown = 0.1f;
     private float fireTimer;
 
-    
-    [Header("Visual Effects")]
+    [Header("Boost / Brake Effects")]
     [Tooltip("The Z-offset of the ship mesh relative to the camera.")]
     [SerializeField] private float normalZOffset = 0f;
     [Tooltip("How far forward the ship moves when boosting.")]
@@ -61,13 +60,17 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private float boostFOV = 60f;
     [SerializeField] private float brakeFOV = 35f;
 
+
+    // ──────────────────────────────────────────────────────────────
+    // Private vars
     private float currentFOV;
     private float targetFOV;
     private float currentZOffset;
     private float targetZOffset;
-
-    // ──────────────────────────────────────────────────────────────
-    // Private vars
+    
+    private float currentSpeed;
+    private float targetSpeed;
+    private float speedVelocity; // For smoothDamp
 
     public float BoostFuelRatio => currentBoostFuel / fuelDuration;
 
@@ -83,9 +86,6 @@ public class PlayerShipController : MonoBehaviour
     private GameInputActions.FlyingActions flying;
 
     private ISplineAutoDolly autoDolly;
-    private float currentSpeed;
-    private float targetSpeed;
-    private float speedVelocity; // For smoothDamp
 
     // Steering
     private Vector2 targetInput;
@@ -99,6 +99,7 @@ public class PlayerShipController : MonoBehaviour
     private float currentRollAngle = 0f;
 
     // ──────────────────────────────────────────────────────────────
+
 
     private void Awake()
     {
@@ -362,10 +363,21 @@ public class PlayerShipController : MonoBehaviour
         leftLaser.transform.position = firePointLeft.position;
         leftLaser.transform.rotation = firePointLeft.rotation;
 
+        // Set the owner tag for the left laser
+        if (leftLaser.TryGetComponent<LaserProjectile>(out var leftLaserScript))
+        {
+            leftLaserScript.SetOwnerTag("Player");
+        }
+
         // Right Laser
         var rightLaser = LaserPool.instance.GetLaser();
         rightLaser.transform.position = firePointRight.position;
         rightLaser.transform.rotation = firePointRight.rotation;
+
+        if (rightLaser.TryGetComponent<LaserProjectile>(out var rightLaserScript))
+        {
+            rightLaserScript.SetOwnerTag("Player");
+        }
     }
 
     private void TriggerBarrelRoll(int direction)
@@ -498,7 +510,23 @@ public class PlayerShipController : MonoBehaviour
         onRailsCam.Lens.FieldOfView = currentFOV;
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Misc.
-    // ──────────────────────────────────────────────────────────────
+    public void HandleDeath()
+    {
+        // Ensure the cart is not null before attempting to disable it
+        if (cart != null)
+        {
+            cart.enabled = false;
+        }
+        // Also stop the player input and other movement-related logic
+        this.enabled = false;
+
+        // Find and disable the player's collider to prevent further hits
+        Collider playerCollider = GetComponent<Collider>();
+        if (playerCollider != null)
+        {
+            playerCollider.enabled = false;
+        }
+
+    }
+
 }
