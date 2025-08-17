@@ -10,6 +10,8 @@ public class LaserProjectile : MonoBehaviour
     [Tooltip("The tag of the object that fired this laser.")]
     [SerializeField] private string ownerTag;
 
+    private LaserPool currentPool;
+
     private float timer;
     private int passthroughLayer;
 
@@ -31,6 +33,18 @@ public class LaserProjectile : MonoBehaviour
         direction = dir.normalized;
         transform.rotation = Quaternion.LookRotation(direction); 
     }
+    
+    // Set owner tag of the laser. To distinguish who shot it. Prevents self-damage
+    public void SetOwnerTag(string tag)
+    {
+        ownerTag = tag;
+    }
+
+    // Assigns the correct pool to this projectile when it's instantiated.
+    public void SetPool(LaserPool pool)
+    {
+        currentPool = pool;
+    }
 
     // Update is called once per frame
     void Update()
@@ -38,11 +52,6 @@ public class LaserProjectile : MonoBehaviour
         UpdateLaser();
     }
 
-    // Set owner tag of the laser. To distinguish who shot it. Prevents self-damage
-    public void SetOwnerTag(string tag)
-    {
-        ownerTag = tag;
-    }
 
     private void UpdateLaser()
     {
@@ -58,18 +67,17 @@ public class LaserProjectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Check if the collided object has the same tag as the owner
-        // Prevents the shooter from shooting themselves
-        if (other.gameObject.CompareTag(ownerTag))
+        // Check for passthrough layer
+        if (other.gameObject.layer == passthroughLayer)
         {
-            Debug.Log($"Laser from {ownerTag} ignored collision with its owner: {other.gameObject.name}");
+            // Do nothing if it's a passthrough collision
             return;
         }
 
-        // Check if the collided object is on the passthrough layer.
-        // The laser will ignore it and continue flying.
-        if (other.gameObject.layer == passthroughLayer)
+        // Check for the owner tag, but only if the ownerTag variable is valid.
+        if (!string.IsNullOrEmpty(ownerTag) && other.gameObject.CompareTag(ownerTag))
         {
+            Debug.Log($"Laser from {ownerTag} ignored collision with its owner: {other.gameObject.name}");
             return;
         }
 
@@ -95,16 +103,16 @@ public class LaserProjectile : MonoBehaviour
 
     private void ReturnToPool()
     {
-        if (LaserPool.instance != null)
+        // Reset the state and return to the correct, assigned pool.
+        ownerTag = string.Empty;
+        if (currentPool != null)
         {
-            LaserPool.instance.ReturnLaser(gameObject);
+            currentPool.ReturnProjectile(gameObject);
         }
-
         else
         {
-            // Fallback if LaserPool instance is not found
             gameObject.SetActive(false);
-            Debug.LogWarning("LaserPool.instance not found when trying to return laser. Deactivating directly.");
+            Debug.LogWarning("Projectile has no assigned pool. Deactivating directly.");
         }
     }
 }

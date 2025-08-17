@@ -5,49 +5,52 @@ public class LaserPool : MonoBehaviour
 {
     public static LaserPool instance;
 
-    [SerializeField] private GameObject laserObject;
-    [SerializeField] private int poolSize = 75;
+    [SerializeField] private GameObject laserProjectile;
+    [SerializeField] private int poolSize = 50;
 
     private Queue<GameObject> pool = new Queue<GameObject>();
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
-        if (instance == null)
-        {
-            instance = this;
+        InitializePool();
+    }
 
-            for (int i = 0; i < poolSize; i++)
-            {
-                GameObject obj = Instantiate(laserObject);
-                obj.SetActive(false);
-                pool.Enqueue(obj);
-            }
-        }
-
-        else
+    // Create and initialize the pool of projectiles
+    private void InitializePool()
+    {
+        for (int i = 0; i < poolSize; i++)
         {
-            Destroy(gameObject);
+            // Instantiate new projectile.
+            GameObject obj = Instantiate(laserProjectile, this.transform);
+
+            // Deactivate it and add it to the queue.
+            obj.SetActive(false);
+            pool.Enqueue(obj);
         }
     }
 
-    public GameObject GetLaser()
+    // Get available laser from pool
+    public GameObject GetProjectile()
     {
         if (pool.Count > 0)
         {
+            // If the pool is not empty, get the first object in the queue.
             GameObject obj = pool.Dequeue();
             obj.SetActive(true);
             return obj;
         }
-
         else
         {
-            GameObject obj = Instantiate(laserObject);
+            // If the pool is empty, instantiate a new projectile as a fallback.
+            GameObject obj = Instantiate(laserProjectile, this.transform);
+            Debug.LogWarning("Pool was empty, instantiated a new projectile. Consider increasing poolSize.");
             return obj;
         }
     }
 
-    public void ReturnLaser(GameObject obj)
+    // Return to pool for reuse
+    public void ReturnProjectile(GameObject obj)
     {
         obj.SetActive(false);
         pool.Enqueue(obj);

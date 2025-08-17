@@ -1,22 +1,45 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Collections;
+using UnityEngine.SceneManagement;
+using System;
 
 public class HUDUIController : MonoBehaviour
 {
-    [SerializeField] private UIDocument hudUiDoc; // HUDUI.uxml
+    [SerializeField] private UIDocument hudUiDoc;
+    [SerializeField] private UIDocument deathScreenUiDoc;
+    [SerializeField] private UIDocument winScreenUiDoc;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerShipController playerShipController;
 
     private VisualElement healthBarFill;
     private VisualElement boostMeter;
-    private VisualElement gameOverScreen;
+    private VisualElement hudContainer;
     private Label healthTextLabel;
     private Label ringsTextLabel;
     private Label scoreTextLabel;
 
+    private VisualElement winScreenPanel;
+    private Label winTextLabel;
+    private Label finalRingsTextLabel;
+    private Label finalEnemiesTextLabel;
+    private Label finalScoreTextLabel;
+
+    // Buttons for the win screen
+    private Button winRestartButton;
+    private Button winQuitButton;
+
+    // Buttons for the death screen
+    private Button deathRestartButton;
+    private Button deathQuitButton;
+
+    [SerializeField] private string mainMenuScene = "MainMenuScene";
+
     private Color greenHealthColor = new Color();
     private Color yellowHealthColor = new Color();
     private Color redHealthColor = new Color();
+
+    [SerializeField] private float fadeDuration = 0.5f; // Fade out the HUD on completion / death
 
     private void Start()
     {
@@ -34,9 +57,17 @@ public class HUDUIController : MonoBehaviour
             return;
         }
 
+        VisualElement root = hudUiDoc.rootVisualElement;
+
+        hudContainer = root.Q<VisualElement>("Panel");
+        if (hudContainer == null)
+        {
+            Debug.LogError("Panel not found in HUD.uxml. Please ensure a VisualElement with this name exists and contains all HUD elements.", this);
+        }
+
         // Get UI element references
         healthBarFill = hudUiDoc.rootVisualElement.Q<VisualElement>("HealthBarFill");
-        if(healthBarFill == null)
+        if (healthBarFill == null)
         {
             Debug.LogError("HealthBar visual not found.");
         }
@@ -61,7 +92,7 @@ public class HUDUIController : MonoBehaviour
 
         healthTextLabel = hudUiDoc.rootVisualElement.Q<Label>("HealthText");
         ringsTextLabel = hudUiDoc.rootVisualElement.Q<Label>("RingsText");
-        
+
         if (ringsTextLabel == null)
         {
             Debug.LogError("RingsText not found in HUD.uxml. Check name in UI Builder.", this);
@@ -80,7 +111,7 @@ public class HUDUIController : MonoBehaviour
 
             // Call once to set UI state
             UpdateRingsPassedUI(GameManager.Instance.RingsPassed);
-            UpdateScoreUI(GameManager.Instance.Score);
+            UpdateScoreUI(GameManager.Instance.Hits);
         }
 
         else
@@ -88,11 +119,46 @@ public class HUDUIController : MonoBehaviour
             Debug.LogError("GameManager Instance not found! Check if GameManager is initialized before", this);
         }
 
-        gameOverScreen = hudUiDoc.rootVisualElement.Q<VisualElement>("gameOverScreen");
-        if (gameOverScreen == null)
+        if (deathScreenUiDoc != null)
         {
-            Debug.LogError("Game Over Screen not found in HUD.uxml. Check name in UI Builder.", this);
+            // Hide death screen initially
+            deathScreenUiDoc.rootVisualElement.style.display = DisplayStyle.None;
+
+            // Find buttons
+            deathRestartButton = deathScreenUiDoc.rootVisualElement.Q<Button>("RestartBtn");
+            deathQuitButton = deathScreenUiDoc.rootVisualElement.Q<Button>("QuitBtn");
+
+            deathRestartButton.clicked += RestartGame;
+            deathQuitButton.clicked += ReturnToMainMenu;
         }
+
+        if (winScreenUiDoc != null)
+        {
+            // Hide win screen initially
+            winScreenUiDoc.rootVisualElement.style.display = DisplayStyle.None;
+
+            // Get references to all the win screen elements
+            winScreenPanel = winScreenUiDoc.rootVisualElement.Q<VisualElement>("WinScreenPanel");
+            winTextLabel = winScreenUiDoc.rootVisualElement.Q<Label>("WinText");
+            finalRingsTextLabel = winScreenUiDoc.rootVisualElement.Q<Label>("RingsPassedText");
+            finalEnemiesTextLabel = winScreenUiDoc.rootVisualElement.Q<Label>("EnemiesDefeatedText");
+            finalScoreTextLabel = winScreenUiDoc.rootVisualElement.Q<Label>("FinalScoreText");
+
+            // Register click events
+            winRestartButton = winScreenUiDoc.rootVisualElement.Q<Button>("RestartBtn");
+            winQuitButton = winScreenUiDoc.rootVisualElement.Q<Button>("QuitBtn");
+
+            if (winRestartButton != null)
+            {
+                winRestartButton.clicked += RestartGame;
+            }
+
+            if (winQuitButton != null)
+            { 
+                winQuitButton.clicked += ReturnToMainMenu; 
+            }
+        }
+
     }
 
     void OnDisable()
@@ -107,6 +173,18 @@ public class HUDUIController : MonoBehaviour
         {
             GameManager.Instance.OnRingsPassedChanged -= UpdateRingsPassedUI;
             GameManager.Instance.OnScoreChanged -= UpdateScoreUI;
+        }
+
+        if (deathScreenUiDoc != null)
+        {
+            deathRestartButton.clicked -= RestartGame;
+            deathQuitButton.clicked -= ReturnToMainMenu;
+        }
+
+        if (winScreenUiDoc != null)
+        {
+            if (winRestartButton != null) winRestartButton.clicked -= RestartGame;
+            if (winQuitButton != null) winQuitButton.clicked -= ReturnToMainMenu;
         }
     }
 
@@ -191,22 +269,116 @@ public class HUDUIController : MonoBehaviour
     /// <summary>
     /// Updates the score UI label.
     /// </summary>
-    private void UpdateScoreUI(int score)
+    private void UpdateScoreUI(int hits)
     {
         if (scoreTextLabel != null)
         {
-            scoreTextLabel.text = $"Hits: {score.ToString("D3")}"; // Format numbers as 000, 001 etc.
+            scoreTextLabel.text = $"Hits: {hits.ToString("D3")}"; // Format numbers as 000, 001 etc.
+        }
+    }
+
+    public void HideHUD()
+    {
+        StartCoroutine(FadeOutUI(hudUiDoc));
+    }
+
+    /// <summary>
+    /// Show death screen UI.
+    /// </summary>
+    public void ShowDeathScreen(Action onCompleteAction)
+    {
+        // Immediately enable the death screen so it can fade in.
+        if (deathScreenUiDoc != null)
+        {
+            deathScreenUiDoc.rootVisualElement.style.display = DisplayStyle.Flex;
+            // Start the coroutine to smoothly fade in the death screen
+            StartCoroutine(FadeInUI(deathScreenUiDoc, onCompleteAction));
         }
     }
 
     /// <summary>
-    /// Show Game Over UI.
+    /// Show win screen UI with final stats and trigger a callback upon completion.
     /// </summary>
-    public void ShowGameOverScreen()
+    public void ShowWinScreen(int ringsPassed, int enemiesDefeated, int finalScore, Action onCompleteAction)
     {
-        if (gameOverScreen != null)
+        if (winScreenUiDoc != null)
         {
-            gameOverScreen.style.display = DisplayStyle.Flex;
+            // Populate the labels with the final stats
+            finalRingsTextLabel.text = $"Rings Passed: {ringsPassed.ToString()}";
+            finalEnemiesTextLabel.text = $"Enemies Defeated: {enemiesDefeated.ToString()}";
+            finalScoreTextLabel.text = $"Final Score: {finalScore.ToString()}";
+
+            // Set the panel to display:flex before fading in
+            winScreenUiDoc.rootVisualElement.style.display = DisplayStyle.Flex;
+
+            // Start the coroutine to smoothly fade in the win screen
+            // The game is already paused by the GameManager, so we don't need to do it here
+            StartCoroutine(FadeInUI(winScreenUiDoc, onCompleteAction));
         }
+    }
+
+    private IEnumerator FadeOutUI(UIDocument uiDoc)
+    {
+        if (uiDoc == null)
+        {
+            yield break;
+        }
+
+        VisualElement root = uiDoc.rootVisualElement;
+        float timer = 0f;
+
+        while (timer < fadeDuration)
+        {
+            timer += Time.deltaTime;
+            float alpha = Mathf.Lerp(1f, 0f, timer / fadeDuration);
+            root.style.opacity = alpha;
+            yield return null;
+        }
+
+        // Ensure the opacity is exactly 0 and then hide the element
+        root.style.opacity = 0f;
+        root.style.display = DisplayStyle.None;
+    }
+
+    private IEnumerator FadeInUI(UIDocument uiDoc, Action onCompleteAction = null)
+    {
+        if (uiDoc == null)
+        {
+            yield break;
+        }
+
+        VisualElement root = uiDoc.rootVisualElement;
+        float timer = 0f;
+
+        // Make sure the element is transparent before fading in
+        root.style.opacity = 0f;
+
+        while (timer < fadeDuration)
+        {
+            timer += Time.deltaTime;
+            float alpha = Mathf.Lerp(0f, 1f, timer / fadeDuration);
+            root.style.opacity = alpha;
+            yield return null;
+        }
+
+        // Ensure the opacity is exactly 1 when done
+        root.style.opacity = 1f;
+
+        onCompleteAction?.Invoke();
+    }
+
+    public void RestartGame()
+    {
+        // First, ensure the game is unpaused before loading the new scene.
+        Time.timeScale = 1f;
+        GameManager.Instance.ResumeGame();
+
+        GameManager.Instance.ReloadCurrentScene();
+    }
+
+    private void ReturnToMainMenu()
+    {
+        Debug.Log("Returning to Main Menu...");
+        SceneManager.LoadScene(mainMenuScene);
     }
 }

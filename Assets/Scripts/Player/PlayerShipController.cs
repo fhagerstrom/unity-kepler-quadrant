@@ -1,4 +1,5 @@
-﻿using Unity.Cinemachine;
+﻿// PlayerShipController.cs
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Splines;
@@ -9,6 +10,7 @@ public class PlayerShipController : MonoBehaviour
 {
     // ──────────────────────────────────────────────────────────────
     // Inspector vars
+    // ──────────────────────────────────────────────────────────────
     [Header("References")]
     [SerializeField] private CinemachineSplineCart cart;
     [SerializeField] private CinemachineCamera onRailsCam;
@@ -16,6 +18,7 @@ public class PlayerShipController : MonoBehaviour
     [SerializeField] private AimTargetController aimController;
     [SerializeField] private Transform pathFollower;
     [SerializeField] private Transform shipMesh;
+    [SerializeField] private LaserPool playerLaserPool;
 
     [Header("Movement")]
     [SerializeField] private float baseSpeed = 5f;
@@ -48,13 +51,9 @@ public class PlayerShipController : MonoBehaviour
     private float fireTimer;
 
     [Header("Boost / Brake Effects")]
-    [Tooltip("The Z-offset of the ship mesh relative to the camera.")]
     [SerializeField] private float normalZOffset = 0f;
-    [Tooltip("How far forward the ship moves when boosting.")]
     [SerializeField] private float boostZOffset = 1.0f;
-    [Tooltip("How far back the ship moves when braking.")]
     [SerializeField] private float brakeZOffset = -0.5f;
-    [Tooltip("How smoothly the ship moves to the target Z-offset.")]
     [SerializeField] private float positionTransitionSpeed = 5f;
     [SerializeField] private float normalFOV;
     [SerializeField] private float boostFOV = 60f;
@@ -63,11 +62,12 @@ public class PlayerShipController : MonoBehaviour
 
     // ──────────────────────────────────────────────────────────────
     // Private vars
+    // ──────────────────────────────────────────────────────────────
     private float currentFOV;
     private float targetFOV;
     private float currentZOffset;
     private float targetZOffset;
-    
+
     private float currentSpeed;
     private float targetSpeed;
     private float speedVelocity; // For smoothDamp
@@ -98,6 +98,8 @@ public class PlayerShipController : MonoBehaviour
     private float rollTargetAngle = 0f;
     private float currentRollAngle = 0f;
 
+    private bool hasCompletedMission = false;
+
     // ──────────────────────────────────────────────────────────────
 
 
@@ -109,38 +111,38 @@ public class PlayerShipController : MonoBehaviour
         cart = pathFollower.GetComponent<CinemachineSplineCart>();
 
         // inputActions bindings
-        flying.Boost.performed += _ => OnBoostInput(true);
-        flying.Boost.canceled += _ => OnBoostInput(false);
-        flying.Brake.performed += _ => OnBrakeInput(true);
-        flying.Brake.canceled += _ => OnBrakeInput(false);
-        flying.Shoot.performed += _ => Shoot();
-        flying.BarrelRollLeft.performed += _ => TriggerBarrelRoll(-1);
-        flying.BarrelRollRight.performed += _ => TriggerBarrelRoll(1);
-        flying.ToggleFlightMode.performed += _ => ToggleFlightMode();
+        flying.Boost.performed += ctx => OnBoostInput(true);
+        flying.Boost.canceled += ctx => OnBoostInput(false);
+        flying.Brake.performed += ctx => OnBrakeInput(true);
+        flying.Brake.canceled += ctx => OnBrakeInput(false);
+        flying.Shoot.performed += ctx => Shoot();
+        flying.BarrelRollLeft.performed += ctx => TriggerBarrelRoll(-1);
+        flying.BarrelRollRight.performed += ctx => TriggerBarrelRoll(1);
+        flying.ToggleFlightMode.performed += ctx => ToggleFlightMode();
     }
 
     private void OnEnable()
     {
         // Subscribe to the GameManager's pause events
-        GameManager.OnGamePaused += inputActions.Disable;
-        GameManager.OnGameResumed += inputActions.Enable;
+        GameManager.OnGamePaused += OnGamePaused;
+        GameManager.OnGameResumed += OnGameResumed;
 
         // Check if GameManager is already in a paused state. Enable / disable input actions
         if (GameManager.Instance != null)
         {
             if (GameManager.Instance.IsPaused)
             {
-                inputActions.Disable();
+                OnGamePaused();
             }
             else
             {
-                inputActions.Enable();
+                OnGameResumed();
             }
         }
         else
         {
             // If GameManager is null, it means we are in main menu or other non-gameplay scene.
-            // Disable input by default to avoid unintended actions.
+            // Disable input by default
             inputActions.Disable();
         }
     }
@@ -148,21 +150,25 @@ public class PlayerShipController : MonoBehaviour
     private void OnDisable()
     {
         // Unsubscribe from the events
-        flying.Boost.performed -= _ => OnBoostInput(true);
-        flying.Boost.canceled -= _ => OnBoostInput(false);
-        flying.Brake.performed -= _ => OnBrakeInput(true);
-        flying.Brake.canceled -= _ => OnBrakeInput(false);
-        flying.Shoot.performed -= _ => Shoot();
-        flying.BarrelRollLeft.performed -= _ => TriggerBarrelRoll(-1);
-        flying.BarrelRollRight.performed -= _ => TriggerBarrelRoll(1);
-        flying.ToggleFlightMode.performed -= _ => ToggleFlightMode();
-
-        GameManager.OnGamePaused -= inputActions.Disable;
-        GameManager.OnGameResumed -= inputActions.Enable;
-
-        inputActions.Disable();
-
+        GameManager.OnGamePaused -= OnGamePaused;
+        GameManager.OnGameResumed -= OnGameResumed;
     }
+
+    private void OnDestroy()
+    {
+        // Properly unbind input actions
+        flying.Boost.performed -= ctx => OnBoostInput(true);
+        flying.Boost.canceled -= ctx => OnBoostInput(false);
+        flying.Brake.performed -= ctx => OnBrakeInput(true);
+        flying.Brake.canceled -= ctx => OnBrakeInput(false);
+        flying.Shoot.performed -= ctx => Shoot();
+        flying.BarrelRollLeft.performed -= ctx => TriggerBarrelRoll(-1);
+        flying.BarrelRollRight.performed -= ctx => TriggerBarrelRoll(1);
+        flying.ToggleFlightMode.performed -= ctx => ToggleFlightMode();
+
+        inputActions.Dispose();
+    }
+
 
     void Start()
     {
@@ -226,6 +232,9 @@ public class PlayerShipController : MonoBehaviour
 
         UpdateZOffset();
         UpdateFovEffects();
+
+        // Check for mission completion on every frame
+        CheckForMissionComplete();
     }
 
     private void FixedUpdate()
@@ -235,9 +244,47 @@ public class PlayerShipController : MonoBehaviour
             fs.Speed = currentSpeed;
     }
 
+    private void CheckForMissionComplete()
+    {
+        // We only want this to run once, so we check our flag.
+        if (hasCompletedMission)
+        {
+            return;
+        }
+
+        // Check if the player has reached the end of the spline.
+        if (cart.SplinePosition >= cart.Spline.CalculateLength())
+        {
+            Debug.Log("Mission Complete! Final spline position reached.");
+
+            // Set the flag to true to prevent this from running again.
+            hasCompletedMission = true;
+
+            // Stop all player controls and movement.
+            DisableMovement();
+
+            // Trigger the mission complete sequence in the GameManager.
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.StartCompleteSequence();
+            }
+        }
+    }
+
+
     // ──────────────────────────────────────────────────────────────
     // Core behaviour
     // ──────────────────────────────────────────────────────────────
+    private void OnGamePaused()
+    {
+        inputActions.Disable();
+    }
+
+    private void OnGameResumed()
+    {
+        inputActions.Enable();
+    }
+
     private void HandleOnRails()
     {
         // Read the aimController offset for strafing the ship
@@ -359,7 +406,7 @@ public class PlayerShipController : MonoBehaviour
         fireTimer = 0f;
 
         // Left laser
-        var leftLaser = LaserPool.instance.GetLaser();
+        var leftLaser = playerLaserPool.GetProjectile();
         leftLaser.transform.position = firePointLeft.position;
         leftLaser.transform.rotation = firePointLeft.rotation;
 
@@ -367,16 +414,18 @@ public class PlayerShipController : MonoBehaviour
         if (leftLaser.TryGetComponent<LaserProjectile>(out var leftLaserScript))
         {
             leftLaserScript.SetOwnerTag("Player");
+            leftLaserScript.SetPool(playerLaserPool);
         }
 
         // Right Laser
-        var rightLaser = LaserPool.instance.GetLaser();
+        var rightLaser = playerLaserPool.GetProjectile();
         rightLaser.transform.position = firePointRight.position;
         rightLaser.transform.rotation = firePointRight.rotation;
 
         if (rightLaser.TryGetComponent<LaserProjectile>(out var rightLaserScript))
         {
             rightLaserScript.SetOwnerTag("Player");
+            rightLaserScript.SetPool(playerLaserPool);
         }
     }
 
@@ -510,13 +559,14 @@ public class PlayerShipController : MonoBehaviour
         onRailsCam.Lens.FieldOfView = currentFOV;
     }
 
-    public void HandleDeath()
+    public void DisableMovement()
     {
         // Ensure the cart is not null before attempting to disable it
         if (cart != null)
         {
             cart.enabled = false;
         }
+
         // Also stop the player input and other movement-related logic
         this.enabled = false;
 
@@ -528,5 +578,4 @@ public class PlayerShipController : MonoBehaviour
         }
 
     }
-
 }

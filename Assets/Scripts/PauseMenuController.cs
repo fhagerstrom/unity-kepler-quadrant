@@ -75,7 +75,7 @@ public class PauseMenuController : MonoBehaviour
 
     private void OnDisable()
     {
-       
+
         // Unsubscribe from UI input action
         uiActions.Pause.performed -= OnPauseAction;
         // Disable UI action map to prevent stray inputs
@@ -119,7 +119,7 @@ public class PauseMenuController : MonoBehaviour
         // Toggle pause state
         if (GameManager.Instance != null)
         {
-            GameManager.Instance.SetPauseState(!GameManager.Instance.IsPaused);
+            GameManager.Instance.TogglePauseState();
 
             // Show or hide menu based on new state
             if (GameManager.Instance.IsPaused)
@@ -137,19 +137,16 @@ public class PauseMenuController : MonoBehaviour
     {
         if (GameManager.Instance != null)
         {
-            GameManager.Instance.SetPauseState(false);
+            GameManager.Instance.ResumeGame();
             pauseMenuRoot.style.display = DisplayStyle.None;
         }
     }
 
     public void RestartGame()
     {
-        // First, ensure the game is unpaused before loading the new scene.
+        // Ensure the game is unpaused before loading the new scene.
         Time.timeScale = 1f;
-        GameManager.Instance.SetPauseState(false);
-
-        // Get the name of the currently active scene and reload it.
-        //SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        GameManager.Instance.ResumeGame();
 
         GameManager.Instance.ReloadCurrentScene();
     }
@@ -171,8 +168,8 @@ public class PauseMenuController : MonoBehaviour
     {
         Debug.Log("Quitting game...");
         Application.Quit();
-        #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
-        #endif
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
     }
 }

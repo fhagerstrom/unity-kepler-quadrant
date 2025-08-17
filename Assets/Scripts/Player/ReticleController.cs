@@ -14,6 +14,9 @@ public class ReticleController : MonoBehaviour
     [Header("Camera")]
     [SerializeField] private Camera cam;
 
+    // Control for enabling / disabling reticles
+    private bool isReticlesActive = true;
+
     private void Awake()
     {
         if (cam == null)
@@ -22,6 +25,12 @@ public class ReticleController : MonoBehaviour
 
     private void LateUpdate()
     {
+        // Only update the reticles if the bool is true
+        if (!isReticlesActive)
+        {
+            return;
+        }
+
         UpdateReticle(outerReticleTarget, outerReticleUI);
         UpdateReticle(innerReticleTarget, innerReticleUI);
     }
@@ -43,4 +52,10 @@ public class ReticleController : MonoBehaviour
         reticleUI.position = screenPos;
     }
 
+    public void HideReticles()
+    {
+        isReticlesActive = false;
+        outerReticleUI.gameObject.SetActive(false);
+        innerReticleUI.gameObject.SetActive(false);
+    }
 }

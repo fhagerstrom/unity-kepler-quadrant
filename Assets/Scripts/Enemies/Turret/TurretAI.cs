@@ -6,7 +6,7 @@ public class TurretAI : MonoBehaviour
     [SerializeField] private Transform playerTarget;
     [SerializeField] private Transform turretHead;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private GameObject laserProjectile;
+    [SerializeField] private LaserPool enemyLaserPool;
 
     [Header("Behaviour")]
     [SerializeField] private float detectionRadius = 25f;
@@ -114,16 +114,20 @@ public class TurretAI : MonoBehaviour
 
     private void Shoot()
     {
-        if (laserProjectile != null && firePoint != null)
-        {
-            GameObject newLaser = Instantiate(laserProjectile, firePoint.position, firePoint.rotation);
+        // Use the enemyLaserPool to get a pre-existing projectile instead of instantiating.
+        GameObject newLaser = enemyLaserPool.GetProjectile();
 
-            // Get laserprojectile component and set owner tag
-            LaserProjectile laserScript = newLaser.GetComponent<LaserProjectile>();
-            if (laserScript != null)
-            {
-                laserScript.SetOwnerTag("Enemy");
-            }
+        // Position and rotate the laser correctly.
+        newLaser.transform.position = firePoint.position;
+        newLaser.transform.rotation = firePoint.rotation;
+
+        // Get laserprojectile component and set owner tag and pool reference.
+        LaserProjectile laserScript = newLaser.GetComponent<LaserProjectile>();
+        if (laserScript != null)
+        {
+            laserScript.SetOwnerTag("Enemy");
+            // Tell the laser which pool it belongs to.
+            laserScript.SetPool(enemyLaserPool);
         }
     }
 
