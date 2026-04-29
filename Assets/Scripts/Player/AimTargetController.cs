@@ -47,6 +47,11 @@ public class AimTargetController : MonoBehaviour
         {
             Debug.LogError("GameManager instance not found. Steering will not work!");
         }
+
+        if (OptionsManager.Instance != null)
+        {
+            invertY = OptionsManager.Instance.InvertY;
+        }
     }
 
     private void OnEnable()
@@ -54,6 +59,9 @@ public class AimTargetController : MonoBehaviour
         // Subscribe to the GameManager's pause events
         GameManager.OnGamePaused += OnGamePaused;
         GameManager.OnGameResumed += OnGameResumed;
+
+        // Sub to OptionsManager events
+        OptionsManager.OnInvertChanged += SetInvertY;
 
         // Get the initial pause state from the GameManager
         if (GameManager.Instance != null)
@@ -77,8 +85,15 @@ public class AimTargetController : MonoBehaviour
         // Unsubscribe from the events
         GameManager.OnGamePaused -= OnGamePaused;
         GameManager.OnGameResumed -= OnGameResumed;
+        OptionsManager.OnInvertChanged -= SetInvertY;
+
         // Also disable input when the script is disabled.
         flyingActions.Disable();
+    }
+
+    private void SetInvertY(bool inverted)
+    {
+        this.invertY = inverted;
     }
 
     private void OnGamePaused()

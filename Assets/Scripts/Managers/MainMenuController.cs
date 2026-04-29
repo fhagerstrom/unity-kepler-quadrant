@@ -1,3 +1,4 @@
+// MainMenuController.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
@@ -5,6 +6,9 @@ using UnityEngine.UIElements;
 public class MainMenuController : MonoBehaviour
 {
     [SerializeField] private UIDocument mainMenuDoc;
+    [SerializeField] private UIDocument optionsMenuDoc;
+
+    private OptionsUIController optionsUIController;
 
     // Save level names into strings
     // private const string mainGameScene = "LevelSelectorScene";
@@ -16,6 +20,12 @@ public class MainMenuController : MonoBehaviour
         if (mainMenuDoc == null)
         {
             Debug.LogError("Main menu is missing reference to UI document!");
+        }
+
+        // Initially hide the options menu if it exists
+        if (optionsMenuDoc != null)
+        {
+            optionsMenuDoc.enabled = false;
         }
 
         VisualElement root = mainMenuDoc.rootVisualElement;
@@ -30,7 +40,7 @@ public class MainMenuController : MonoBehaviour
 
         // Using `clicked +=` syntax to add a method to the button's event
         mainGameBtn.clicked += OnMainGameClicked;
-        practiceModeBtn.clicked += OnTrainingClicked; 
+        practiceModeBtn.clicked += OnTrainingClicked;
         optionsBtn.clicked += OnOptionsClicked;
         rankingsBtn.clicked += OnRankingsClicked;
         creditsBtn.clicked += OnCreditsClicked;
@@ -69,7 +79,6 @@ public class MainMenuController : MonoBehaviour
     private void OnMainGameClicked()
     {
         Debug.Log("Loading Main Game...");
-        // SceneManager.LoadScene(mainGameScene);
     }
 
     private void OnTrainingClicked()
@@ -81,19 +90,51 @@ public class MainMenuController : MonoBehaviour
     private void OnOptionsClicked()
     {
         Debug.Log("Loading Options Menu...");
-        // Load a new scene or simply show a different VisualElement
+
+        // Disable the main menu UI and enable the options menu UI
+        if (mainMenuDoc != null)
+        {
+            mainMenuDoc.enabled = false;
+        }
+        if (optionsMenuDoc != null)
+        {
+            optionsMenuDoc.enabled = true;
+
+            // Get the OptionsUIController from the options menu UIDocument's GameObject
+            optionsUIController = optionsMenuDoc.GetComponent<OptionsUIController>();
+            if (optionsUIController != null)
+            {
+                optionsUIController.OnBackButtonClicked += HideOptions;
+            }
+        }
+    }
+
+    public void HideOptions()
+    {
+        if (optionsMenuDoc != null)
+        {
+            optionsMenuDoc.enabled = false;
+        }
+        if (mainMenuDoc != null)
+        {
+            mainMenuDoc.enabled = true;
+        }
+
+        // Unsubscribe from the back button's event
+        if (optionsUIController != null)
+        {
+            optionsUIController.OnBackButtonClicked -= HideOptions;
+        }
     }
 
     private void OnRankingsClicked()
     {
         Debug.Log("Loading Rankings...");
-
     }
 
     private void OnCreditsClicked()
     {
         Debug.Log("Loading Credits...");
-        
     }
 
     private void OnQuitClicked()
@@ -103,8 +144,8 @@ public class MainMenuController : MonoBehaviour
         // Build only
         Application.Quit();
 
-        #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
-        #endif
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
     }
 }

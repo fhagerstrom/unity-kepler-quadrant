@@ -1,3 +1,4 @@
+// PauseMenuController.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
@@ -5,10 +6,12 @@ using UnityEngine.InputSystem;
 
 public class PauseMenuController : MonoBehaviour
 {
-    [SerializeField] private UIDocument uiDocument;
+    [SerializeField] private UIDocument pauseMenuDoc;
+    [SerializeField] private UIDocument optionsMenuDoc;
     [SerializeField] private string mainMenuScene = "MainMenuScene";
 
     private VisualElement pauseMenuRoot;
+    private OptionsUIController optionsUIController;
 
     private GameInputActions gameInputActions;
     private GameInputActions.UIActions uiActions;
@@ -22,19 +25,25 @@ public class PauseMenuController : MonoBehaviour
 
     private void OnEnable()
     {
-        if (uiDocument == null)
+        if (pauseMenuDoc == null)
         {
             Debug.LogError("Pause menu is missing reference to UI document!", this);
             return;
         }
 
-        VisualElement root = uiDocument.rootVisualElement;
+        VisualElement root = pauseMenuDoc.rootVisualElement;
 
         pauseMenuRoot = root.Q("PauseMenuPanel");
         if (pauseMenuRoot == null)
         {
             Debug.LogError("PauseMenuPanel not found in the UI Document!", this);
             return;
+        }
+
+        // Initially hide the options menu if it exists
+        if (optionsMenuDoc != null)
+        {
+            optionsMenuDoc.enabled = false;
         }
 
         // Subscribe to pause event
@@ -75,18 +84,18 @@ public class PauseMenuController : MonoBehaviour
 
     private void OnDisable()
     {
-
         // Unsubscribe from UI input action
+        
         uiActions.Pause.performed -= OnPauseAction;
-        // Disable UI action map to prevent stray inputs
         uiActions.Disable();
 
-        if (uiDocument == null || uiDocument.rootVisualElement == null)
+
+        if (pauseMenuDoc == null || pauseMenuDoc.rootVisualElement == null)
         {
             return;
         }
 
-        VisualElement root = uiDocument.rootVisualElement;
+        VisualElement root = pauseMenuDoc.rootVisualElement;
 
         Button resumeBtn = root.Q<Button>("ResumeBtn");
         Button optionsBtn = root.Q<Button>("OptionsBtn");
@@ -116,6 +125,9 @@ public class PauseMenuController : MonoBehaviour
 
     private void OnPauseAction(InputAction.CallbackContext context)
     {
+        // Only toggle if we're not currently in the options menu
+        if (optionsMenuDoc != null && optionsMenuDoc.enabled) return;
+
         // Toggle pause state
         if (GameManager.Instance != null)
         {
@@ -144,7 +156,7 @@ public class PauseMenuController : MonoBehaviour
 
     public void RestartGame()
     {
-        // Ensure the game is unpaused before loading the new scene.
+        // Ensure the game is unpaused before reloading scene.
         Time.timeScale = 1f;
         GameManager.Instance.ResumeGame();
 
@@ -154,8 +166,42 @@ public class PauseMenuController : MonoBehaviour
     private void ShowOptions()
     {
         Debug.Log("Showing Options Menu...");
-        // TODO: Actually create an options menu.
-        // Should use same as main menu options
+
+        // Disable the pause menu UI and enable the options menu UI
+        if (pauseMenuDoc != null)
+        {
+            pauseMenuDoc.enabled = false;
+        }
+        if (optionsMenuDoc != null)
+        {
+            optionsMenuDoc.enabled = true;
+
+            // Get the OptionsUIController from the options menu UIDocument's GameObject
+            optionsUIController = optionsMenuDoc.GetComponent<OptionsUIController>();
+            if (optionsUIController != null)
+            {
+                // Subscribe to the options menu's back button event
+                optionsUIController.OnBackButtonClicked += HideOptions;
+            }
+        }
+    }
+
+    public void HideOptions()
+    {
+        if (optionsMenuDoc != null)
+        {
+            optionsMenuDoc.enabled = false;
+        }
+        if (pauseMenuDoc != null)
+        {
+            pauseMenuDoc.enabled = true;
+        }
+
+        // Unsubscribe from the back button's event
+        if (optionsUIController != null)
+        {
+            optionsUIController.OnBackButtonClicked -= HideOptions;
+        }
     }
 
     private void ReturnToMainMenu()
@@ -168,8 +214,8 @@ public class PauseMenuController : MonoBehaviour
     {
         Debug.Log("Quitting game...");
         Application.Quit();
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#endif
+        #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+        #endif
     }
 }
