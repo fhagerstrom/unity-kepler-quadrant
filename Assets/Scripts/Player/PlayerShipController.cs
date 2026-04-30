@@ -407,8 +407,14 @@ public class PlayerShipController : MonoBehaviour
 
         // Left laser
         var leftLaser = playerLaserPool.GetProjectile();
-        leftLaser.transform.position = firePointLeft.position;
-        leftLaser.transform.rotation = firePointLeft.rotation;
+        leftLaser.transform.position = firePointLeft.position - firePointLeft.right * 0.2f;
+
+        Vector3 aimDirLeft = (aimController.FarTarget.position - firePointLeft.position).normalized;
+        leftLaser.transform.rotation = Quaternion.LookRotation(aimDirLeft);
+
+        // leftLaser.transform.rotation = firePointLeft.rotation;
+
+
 
         // Set the owner tag for the left laser
         if (leftLaser.TryGetComponent<LaserProjectile>(out var leftLaserScript))
@@ -419,8 +425,12 @@ public class PlayerShipController : MonoBehaviour
 
         // Right Laser
         var rightLaser = playerLaserPool.GetProjectile();
-        rightLaser.transform.position = firePointRight.position;
-        rightLaser.transform.rotation = firePointRight.rotation;
+        rightLaser.transform.position = firePointRight.position + firePointRight.right * 0.2f;
+
+        Vector3 aimDirRight = (aimController.FarTarget.position - firePointRight.position).normalized;
+        rightLaser.transform.rotation = Quaternion.LookRotation(aimDirRight);
+
+        // rightLaser.transform.rotation = firePointRight.rotation;
 
         if (rightLaser.TryGetComponent<LaserProjectile>(out var rightLaserScript))
         {

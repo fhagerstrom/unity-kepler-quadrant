@@ -9,6 +9,9 @@ public class AimTargetController : MonoBehaviour
     [SerializeField] private Transform closeTarget;
     [SerializeField] private Transform farTarget;
 
+    public Transform CloseTarget => closeTarget; // Expose close target for other scripts to reference
+    public Transform FarTarget => farTarget; // Expose far target for other scripts to reference
+
     [Header("Settings")]
     [SerializeField] public float maxRadius = 1f;   // max local offset of close target
     [SerializeField] private float returnSpeed = 5f;   // higher = faster recentre
@@ -141,6 +144,8 @@ public class AimTargetController : MonoBehaviour
     {
         Vector3 worldAimDir = (closeTarget.position - shipTransform.position).normalized;
         farTarget.position = shipTransform.position + worldAimDir * farDistance;
+
+        Debug.DrawLine(shipTransform.position, farTarget.position, Color.red);
     }
 
     private void RotateShipTowardsClose()
